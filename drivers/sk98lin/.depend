@@ -1,0 +1,103 @@
+skge.o: skge.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+skaddr.o: skaddr.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+skgehwt.o: skgehwt.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+skgeinit.o: skgeinit.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+skgepnmi.o: skgepnmi.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+skgesirq.o: skgesirq.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+ski2c.o: ski2c.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+sklm80.o: sklm80.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+skqueue.o: skqueue.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+skrlmt.o: skrlmt.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+sktimer.o: sktimer.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+skvpd.o: skvpd.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+skxmac2.o: skxmac2.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+skcsum.o: skcsum.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+uboot_skb.o: uboot_skb.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h
+uboot_drv.o: uboot_drv.c \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/common.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/oxnas.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/configs/ox820.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/cmd_confdefs.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/linux/bitops.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/asm/bitops.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/linux/types.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/linux/config.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/linux/posix_types.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/linux/stddef.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/asm/posix_types.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/asm/types.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/linux/string.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/asm/string.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/asm/ptrace.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/asm/proc/ptrace.h \
+ /usr/lib/gcc/arm-unknown-linux-gnueabi/4.6.1/include/stdarg.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/part.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/ide.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/flash.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/image.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/asm/u-boot.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/asm/global_data.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/asm/mach-types.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/asm/setup.h \
+ /media/local/plx/SDK_3.0.0-sources/vendor/u-boot-new/include/asm/u-boot-arm.h
