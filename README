@@ -1,12 +1,10 @@
-This is the working source for u-boot 1.1.2 for the ox820 systems, used by Arch Linux ARM developers.
+This is the working source for u-boot 1.1.4 for the ox820 systems, used by Arch Linux ARM developers.
 
 It currently includes NAND, IDE (SATA), and network.
-
-Patches shall be sent to the u-boot-users mailing list.
 
 Compiling locally, and fairly quick.
 
 make mrproper
 make ox820_config
 make -j2
-../../stage1/tools/packager u-boot.bin u-boot.wrapped
+stage1/packager u-boot.bin u-boot.wrapped
