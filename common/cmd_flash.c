@@ -27,12 +27,21 @@
 #include <common.h>
 #include <command.h>
 
-
 #ifdef CONFIG_HAS_DATAFLASH
 #include <dataflash.h>
 #endif
 
 #if (CONFIG_COMMANDS & CFG_CMD_FLASH)
+
+#if (CONFIG_COMMANDS & CFG_CMD_JFFS2) && defined(CONFIG_JFFS2_CMDLINE)
+#include <jffs2/jffs2.h>
+
+/* parition handling routines */
+int mtdparts_init(void);
+int id_parse(const char *id, const char **ret_id, u8 *dev_type, u8 *dev_num);
+int find_dev_and_part(const char *id, struct mtd_device **dev,
+		u8 *part_num, struct part_info **part);
+#endif
 
 extern flash_info_t flash_info[];	/* info for FLASH chips */
 
@@ -92,6 +101,95 @@ abbrev_spec (char *str, flash_info_t ** pinfo, int *psf, int *psl)
 	*pinfo = fp;
 	*psf = first;
 	*psl = last;
+
+	return 1;
+}
+
+/*
+ * This function computes the start and end addresses for both
+ * erase and protect commands. The range of the addresses on which
+ * either of the commands is to operate can be given in two forms:
+ * 1. <cmd> start end - operate on <'start',  'end')
+ * 2. <cmd> start +length - operate on <'start', start + length)
+ * If the second form is used and the end address doesn't fall on the
+ * sector boundary, than it will be adjusted to the next sector boundary.
+ * If it isn't in the flash, the function will fail (return -1).
+ * Input:
+ *    arg1, arg2: address specification (i.e. both command arguments)
+ * Output:
+ *    addr_first, addr_last: computed address range
+ * Return:
+ *    1: success
+ *   -1: failure (bad format, bad address).
+*/
+static int
+addr_spec(char *arg1, char *arg2, ulong *addr_first, ulong *addr_last)
+{
+	char len_used = 0; /* indicates if the "start +length" form used */
+	char *ep;
+
+	*addr_first = simple_strtoul(arg1, &ep, 16);
+	if (ep == arg1 || *ep != '\0')
+		return -1;
+
+	if (arg2 && *arg2 == '+'){
+		len_used = 1;
+		++arg2;
+	}
+
+	*addr_last = simple_strtoul(arg2, &ep, 16);
+	if (ep == arg2 || *ep != '\0')
+		return -1;
+
+	if (len_used){
+		char found = 0;
+		ulong bank;
+
+		/*
+		 * *addr_last has the length, compute correct *addr_last
+		 * XXX watch out for the integer overflow! Right now it is
+		 * checked for in both the callers.
+		 */
+		*addr_last = *addr_first + *addr_last - 1;
+
+		/*
+		 * It may happen that *addr_last doesn't fall on the sector
+		 * boundary. We want to round such an address to the next
+		 * sector boundary, so that the commands don't fail later on.
+		 */
+
+		/* find the end addr of the sector where the *addr_last is */
+		for (bank = 0; bank < CFG_MAX_FLASH_BANKS && !found; ++bank){
+			int i;
+			flash_info_t *info = &flash_info[bank];
+			for (i = 0; i < info->sector_count && !found; ++i){
+				/* get the end address of the sector */
+				ulong sector_end_addr;
+				if (i == info->sector_count - 1){
+					sector_end_addr =
+						info->start[0] + info->size - 1;
+				} else {
+					sector_end_addr =
+						info->start[i+1] - 1;
+				}
+				if (*addr_last <= sector_end_addr &&
+						*addr_last >= info->start[i]){
+					/* sector found */
+					found = 1;
+					/* adjust *addr_last if necessary */
+					if (*addr_last < sector_end_addr){
+						*addr_last = sector_end_addr;
+					}
+				}
+			} /* sector */
+		} /* bank */
+		if (!found){
+			/* error, addres not in flash */
+			printf("Error: end address (0x%08lx) not in flash!\n",
+								*addr_last);
+			return -1;
+		}
+	} /* "start +length" from used */
 
 	return 1;
 }
@@ -206,11 +304,17 @@ int do_flinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	flash_print_info (&flash_info[bank-1]);
 	return 0;
 }
+
 int do_flerase (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	flash_info_t *info;
 	ulong bank, addr_first, addr_last;
 	int n, sect_first, sect_last;
+#if (CONFIG_COMMANDS & CFG_CMD_JFFS2) && defined(CONFIG_JFFS2_CMDLINE)
+	struct mtd_device *dev;
+	struct part_info *part;
+	u8 dev_type, dev_num, pnum;
+#endif
 	int rcode = 0;
 
 	if (argc < 2) {
@@ -238,6 +342,32 @@ int do_flerase (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return rcode;
 	}
 
+#if (CONFIG_COMMANDS & CFG_CMD_JFFS2) && defined(CONFIG_JFFS2_CMDLINE)
+	/* erase <part-id> - erase partition */
+	if ((argc == 2) && (id_parse(argv[1], NULL, &dev_type, &dev_num) == 0)) {
+		mtdparts_init();
+		if (find_dev_and_part(argv[1], &dev, &pnum, &part) == 0) {
+			if (dev->id->type == MTD_DEV_TYPE_NOR) {
+				bank = dev->id->num;
+				info = &flash_info[bank];
+				addr_first = part->offset + info->start[0];
+				addr_last = addr_first + part->size - 1;
+
+				printf ("Erase Flash Parition %s, "
+						"bank %d, 0x%08lx - 0x%08lx ",
+						argv[1], bank, addr_first,
+						addr_last);
+
+				rcode = flash_sect_erase(addr_first, addr_last);
+				return rcode;
+			}
+
+			printf("cannot erase, not a NOR device\n");
+			return 1;
+		}
+	}
+#endif
+
 	if (argc != 3) {
 		printf ("Usage:\n%s\n", cmdtp->usage);
 		return 1;
@@ -256,8 +386,10 @@ int do_flerase (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return rcode;
 	}
 
-	addr_first = simple_strtoul(argv[1], NULL, 16);
-	addr_last  = simple_strtoul(argv[2], NULL, 16);
+	if (addr_spec(argv[1], argv[2], &addr_first, &addr_last) < 0){
+		printf ("Bad address format\n");
+		return 1;
+	}
 
 	if (addr_first >= addr_last) {
 		printf ("Usage:\n%s\n", cmdtp->usage);
@@ -272,7 +404,11 @@ int flash_sect_erase (ulong addr_first, ulong addr_last)
 {
 	flash_info_t *info;
 	ulong bank;
+#ifdef CFG_MAX_FLASH_BANKS_DETECT
+	int s_first[CFG_MAX_FLASH_BANKS_DETECT], s_last[CFG_MAX_FLASH_BANKS_DETECT];
+#else
 	int s_first[CFG_MAX_FLASH_BANKS], s_last[CFG_MAX_FLASH_BANKS];
+#endif
 	int erased = 0;
 	int planned;
 	int rcode = 0;
@@ -310,6 +446,11 @@ int do_protect (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	flash_info_t *info;
 	ulong bank, addr_first, addr_last;
 	int i, p, n, sect_first, sect_last;
+#if (CONFIG_COMMANDS & CFG_CMD_JFFS2) && defined(CONFIG_JFFS2_CMDLINE)
+	struct mtd_device *dev;
+	struct part_info *part;
+	u8 dev_type, dev_num, pnum;
+#endif
 	int rcode = 0;
 #ifdef CONFIG_HAS_DATAFLASH
 	int status;
@@ -398,6 +539,33 @@ int do_protect (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return rcode;
 	}
 
+#if (CONFIG_COMMANDS & CFG_CMD_JFFS2) && defined(CONFIG_JFFS2_CMDLINE)
+	/* protect on/off <part-id> */
+	if ((argc == 3) && (id_parse(argv[2], NULL, &dev_type, &dev_num) == 0)) {
+		mtdparts_init();
+		if (find_dev_and_part(argv[2], &dev, &pnum, &part) == 0) {
+			if (dev->id->type == MTD_DEV_TYPE_NOR) {
+				bank = dev->id->num;
+				info = &flash_info[bank];
+				addr_first = part->offset + info->start[0];
+				addr_last = addr_first + part->size - 1;
+
+				printf ("%sProtect Flash Parition %s, "
+						"bank %d, 0x%08lx - 0x%08lx\n",
+						p ? "" : "Un", argv[1],
+						bank, addr_first, addr_last);
+
+				rcode = flash_sect_protect (p, addr_first, addr_last);
+				return rcode;
+			}
+
+			printf("cannot %sprotect, not a NOR device\n",
+					p ? "" : "un");
+			return 1;
+		}
+	}
+#endif
+
 	if (argc != 4) {
 		printf ("Usage:\n%s\n", cmdtp->usage);
 		return 1;
@@ -435,8 +603,10 @@ int do_protect (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return rcode;
 	}
 
-	addr_first = simple_strtoul(argv[2], NULL, 16);
-	addr_last  = simple_strtoul(argv[3], NULL, 16);
+	if (addr_spec(argv[2], argv[3], &addr_first, &addr_last) < 0){
+		printf("Bad address format\n");
+		return 1;
+	}
 
 	if (addr_first >= addr_last) {
 		printf ("Usage:\n%s\n", cmdtp->usage);
@@ -451,7 +621,11 @@ int flash_sect_protect (int p, ulong addr_first, ulong addr_last)
 {
 	flash_info_t *info;
 	ulong bank;
+#ifdef CFG_MAX_FLASH_BANKS_DETECT
+	int s_first[CFG_MAX_FLASH_BANKS_DETECT], s_last[CFG_MAX_FLASH_BANKS_DETECT];
+#else
 	int s_first[CFG_MAX_FLASH_BANKS], s_last[CFG_MAX_FLASH_BANKS];
+#endif
 	int protected, i;
 	int planned;
 	int rcode;
@@ -498,6 +672,15 @@ int flash_sect_protect (int p, ulong addr_first, ulong addr_last)
 
 
 /**************************************************/
+#if (CONFIG_COMMANDS & CFG_CMD_JFFS2) && defined(CONFIG_JFFS2_CMDLINE)
+# define TMP_ERASE	"erase <part-id>\n    - erase partition\n"
+# define TMP_PROT_ON	"protect on <part-id>\n    - protect partition\n"
+# define TMP_PROT_OFF	"protect off <part-id>\n    - make partition writable\n"
+#else
+# define TMP_ERASE	/* empty */
+# define TMP_PROT_ON	/* empty */
+# define TMP_PROT_OFF	/* empty */
+#endif
 
 U_BOOT_CMD(
 	flinfo,    2,    1,    do_flinfo,
@@ -511,8 +694,12 @@ U_BOOT_CMD(
 	"erase   - erase FLASH memory\n",
 	"start end\n"
 	"    - erase FLASH from addr 'start' to addr 'end'\n"
+	"erase start +len\n"
+	"    - erase FLASH from addr 'start' to the end of sect "
+	"w/addr 'start'+'len'-1\n"
 	"erase N:SF[-SL]\n    - erase sectors SF-SL in FLASH bank # N\n"
 	"erase bank N\n    - erase FLASH bank # N\n"
+	TMP_ERASE
 	"erase all\n    - erase all FLASH banks\n"
 );
 
@@ -521,16 +708,28 @@ U_BOOT_CMD(
 	"protect - enable or disable FLASH write protection\n",
 	"on  start end\n"
 	"    - protect FLASH from addr 'start' to addr 'end'\n"
+	"protect on start +len\n"
+	"    - protect FLASH from addr 'start' to end of sect "
+	"w/addr 'start'+'len'-1\n"
 	"protect on  N:SF[-SL]\n"
 	"    - protect sectors SF-SL in FLASH bank # N\n"
 	"protect on  bank N\n    - protect FLASH bank # N\n"
+	TMP_PROT_ON
 	"protect on  all\n    - protect all FLASH banks\n"
 	"protect off start end\n"
 	"    - make FLASH from addr 'start' to addr 'end' writable\n"
+	"protect off start +len\n"
+	"    - make FLASH from addr 'start' to end of sect "
+	"w/addr 'start'+'len'-1 wrtable\n"
 	"protect off N:SF[-SL]\n"
 	"    - make sectors SF-SL writable in FLASH bank # N\n"
 	"protect off bank N\n    - make FLASH bank # N writable\n"
+	TMP_PROT_OFF
 	"protect off all\n    - make all FLASH banks writable\n"
 );
+
+#undef	TMP_ERASE
+#undef	TMP_PROT_ON
+#undef	TMP_PROT_OFF
 
 #endif	/* CFG_CMD_FLASH */

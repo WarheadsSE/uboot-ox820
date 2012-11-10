@@ -35,6 +35,7 @@
 
 #define CONFIG_MPC8260		1	/* This is an MPC8260 CPU	*/
 #define CONFIG_HYMOD		1	/* ...on a Hymod board		*/
+#define CONFIG_CPM2		1	/* Has a CPM2 */
 
 #define	CONFIG_MISC_INIT_F	1	/* Use misc_init_f()		*/
 
@@ -176,6 +177,7 @@
 #define CONFIG_COMMANDS		(CFG_CMD_ALL & ~( \
 					CFG_CMD_BEDBUG	| \
 					CFG_CMD_BMP	| \
+					CFG_CMD_DISPLAY	| \
 					CFG_CMD_DOC	| \
 					CFG_CMD_EXT2	| \
 					CFG_CMD_FDC	| \
@@ -710,5 +712,22 @@
  */
 #define	BOOTFLAG_COLD	0x01		/* Normal Power-On: Boot from FLASH*/
 #define BOOTFLAG_WARM	0x02		/* Software reboot		*/
+
+/*
+ * JFFS2 partitions
+ *
+ */
+/* No command line, one static partition, whole device */
+#undef CONFIG_JFFS2_CMDLINE
+#define CONFIG_JFFS2_DEV		"nor0"
+#define CONFIG_JFFS2_PART_SIZE		0xFFFFFFFF
+#define CONFIG_JFFS2_PART_OFFSET	0x00000000
+
+/* mtdparts command line support */
+/*
+#define CONFIG_JFFS2_CMDLINE
+#define MTDIDS_DEFAULT		""
+#define MTDPARTS_DEFAULT	""
+*/
 
 #endif	/* __CONFIG_H */

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2000-2003
+ * (C) Copyright 2000-2005
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -58,16 +58,16 @@
 #define	CONFIG_EXTRA_ENV_SETTINGS					\
 	"netdev=eth0\0"							\
 	"nfsargs=setenv bootargs root=/dev/nfs rw "			\
-		"nfsroot=$(serverip):$(rootpath)\0"			\
+		"nfsroot=${serverip}:${rootpath}\0"			\
 	"ramargs=setenv bootargs root=/dev/ram rw\0"			\
-	"addip=setenv bootargs $(bootargs) "				\
-		"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask)"	\
-		":$(hostname):$(netdev):off panic=1\0"			\
+	"addip=setenv bootargs ${bootargs} "				\
+		"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}"	\
+		":${hostname}:${netdev}:off panic=1\0"			\
 	"flash_nfs=run nfsargs addip;"					\
-		"bootm $(kernel_addr)\0"				\
+		"bootm ${kernel_addr}\0"				\
 	"flash_self=run ramargs addip;"					\
-		"bootm $(kernel_addr) $(ramdisk_addr)\0"		\
-	"net_nfs=tftp 200000 $(bootfile);run nfsargs addip;bootm\0"	\
+		"bootm ${kernel_addr} ${ramdisk_addr}\0"		\
+	"net_nfs=tftp 200000 ${bootfile};run nfsargs addip;bootm\0"	\
 	"rootpath=/opt/eldk/ppc_8xx\0"					\
 	"bootfile=/tftpboot/TQM823M/uImage\0"				\
 	"kernel_addr=40080000\0"					\
@@ -97,9 +97,11 @@
 
 #define CONFIG_COMMANDS	      ( CONFIG_CMD_DFL	| \
 				CFG_CMD_ASKENV	| \
+				CFG_CMD_DATE	| \
 				CFG_CMD_DHCP	| \
 				CFG_CMD_IDE	| \
-				CFG_CMD_DATE	)
+				CFG_CMD_NFS	| \
+				CFG_CMD_SNTP	)
 
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
 #include <cmd_confdefs.h>

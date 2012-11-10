@@ -225,8 +225,26 @@
 
 #define CFG_FLASH_EMPTY_INFO		/* print 'E' for empty sector on flinfo */
 
-#define CFG_JFFS2_FIRST_BANK	0	    /* use for JFFS2 */
-#define CFG_JFFS2_NUM_BANKS	1	    /* ! second bank contains U-Boot */
+/*
+ * JFFS2 partitions
+ */
+/* No command line, one static partition */
+#undef CONFIG_JFFS2_CMDLINE
+#define CONFIG_JFFS2_DEV		"nor0"
+#define CONFIG_JFFS2_PART_SIZE		0xFFFFFFFF
+#define CONFIG_JFFS2_PART_OFFSET	0x00000000
+
+/* mtdparts command line support */
+
+/* Use first bank for JFFS2, second bank contains U-Boot.
+ *
+ * Note: fake mtd_id's used, no linux mtd map file.
+ */
+/*
+#define CONFIG_JFFS2_CMDLINE
+#define MTDIDS_DEFAULT		"nor0=cpci405ab-0"
+#define MTDPARTS_DEFAULT	"mtdparts=cpci405ab-0:-(jffs2)"
+*/
 
 /*-----------------------------------------------------------------------
  * I2C EEPROM (CAT24WC32) for environment
@@ -260,7 +278,7 @@
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		16384	/* For IBM 405 CPUs, older 405 ppc's	*/
+#define CFG_DCACHE_SIZE		16384	/* For AMCC 405 CPUs, older 405 ppc's	*/
 					/* have only 8kB, 16kB is save here	*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)

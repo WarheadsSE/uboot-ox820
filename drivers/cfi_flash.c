@@ -47,7 +47,7 @@
 #include <common.h>
 #include <asm/processor.h>
 #include <asm/byteorder.h>
-#include <linux/byteorder/swab.h>
+#include <environment.h>
 #ifdef	CFG_FLASH_CFI_DRIVER
 
 /*
@@ -166,9 +166,15 @@ typedef union {
 
 #define NUM_ERASE_REGIONS 4
 
+/* use CFG_MAX_FLASH_BANKS_DETECT if defined */
+#ifdef CFG_MAX_FLASH_BANKS_DETECT
+static ulong bank_base[CFG_MAX_FLASH_BANKS_DETECT] = CFG_FLASH_BANKS_LIST;
+flash_info_t flash_info[CFG_MAX_FLASH_BANKS_DETECT];	/* FLASH chips info */
+#else
 static ulong bank_base[CFG_MAX_FLASH_BANKS] = CFG_FLASH_BANKS_LIST;
+flash_info_t flash_info[CFG_MAX_FLASH_BANKS];		/* FLASH chips info */
+#endif
 
-flash_info_t flash_info[CFG_MAX_FLASH_BANKS];	/* info for FLASH chips	  */
 
 /*-----------------------------------------------------------------------
  * Functions
@@ -184,10 +190,13 @@ static int flash_isequal (flash_info_t * info, flash_sect_t sect, uint offset, u
 static int flash_isset (flash_info_t * info, flash_sect_t sect, uint offset, uchar cmd);
 static int flash_toggle (flash_info_t * info, flash_sect_t sect, uint offset, uchar cmd);
 static int flash_detect_cfi (flash_info_t * info);
-static ulong flash_get_size (ulong base, int banknum);
+ulong flash_get_size (ulong base, int banknum);
 static int flash_write_cfiword (flash_info_t * info, ulong dest, cfiword_t cword);
 static int flash_full_status_check (flash_info_t * info, flash_sect_t sector,
 				    ulong tout, char *prompt);
+#if defined(CFG_ENV_IS_IN_FLASH) || defined(CFG_ENV_ADDR_REDUND) || (CFG_MONITOR_BASE >= CFG_FLASH_BASE)
+static flash_info_t *flash_get_info(ulong base);
+#endif
 #ifdef CFG_FLASH_USE_BUFFER_WRITE
 static int flash_write_cfibuffer (flash_info_t * info, ulong dest, uchar * cp, int len);
 #endif
@@ -218,7 +227,7 @@ static void flash_printqry (flash_info_t * info, flash_sect_t sect)
 	cfiptr_t cptr;
 	int x, y;
 
-	for (x = 0; x < 0x40; x += 16 / info->portwidth) {
+	for (x = 0; x < 0x40; x += 16U / info->portwidth) {
 		cptr.cp =
 			flash_make_addr (info, sect,
 					 x + FLASH_OFFSET_CFI_RESP);
@@ -331,8 +340,10 @@ unsigned long flash_init (void)
 		flash_info[i].flash_id = FLASH_UNKNOWN;
 		size += flash_info[i].size = flash_get_size (bank_base[i], i);
 		if (flash_info[i].flash_id == FLASH_UNKNOWN) {
+#ifndef CFG_FLASH_QUIET_TEST
 			printf ("## Unknown FLASH on Bank %d - Size = 0x%08lx = %ld MB\n",
 				i, flash_info[i].size, flash_info[i].size << 20);
+#endif /* CFG_FLASH_QUIET_TEST */
 		}
 	}
 
@@ -340,8 +351,8 @@ unsigned long flash_init (void)
 #if (CFG_MONITOR_BASE >= CFG_FLASH_BASE)
 	flash_protect (FLAG_PROTECT_SET,
 		       CFG_MONITOR_BASE,
-		       CFG_MONITOR_BASE + CFG_MONITOR_LEN - 1,
-		       &flash_info[0]);
+		       CFG_MONITOR_BASE + monitor_flash_len  - 1,
+		       flash_get_info(CFG_MONITOR_BASE));
 #endif
 
 	/* Environment protection ON by default */
@@ -349,7 +360,7 @@ unsigned long flash_init (void)
 	flash_protect (FLAG_PROTECT_SET,
 		       CFG_ENV_ADDR,
 		       CFG_ENV_ADDR + CFG_ENV_SECT_SIZE - 1,
-		       &flash_info[0]);
+		       flash_get_info(CFG_ENV_ADDR));
 #endif
 
 	/* Redundant environment protection ON by default */
@@ -357,10 +368,29 @@ unsigned long flash_init (void)
 	flash_protect (FLAG_PROTECT_SET,
 		       CFG_ENV_ADDR_REDUND,
 		       CFG_ENV_ADDR_REDUND + CFG_ENV_SIZE_REDUND - 1,
-		       &flash_info[0]);
+		       flash_get_info(CFG_ENV_ADDR_REDUND));
 #endif
 	return (size);
 }
+
+/*-----------------------------------------------------------------------
+ */
+#if defined(CFG_ENV_IS_IN_FLASH) || defined(CFG_ENV_ADDR_REDUND) || (CFG_MONITOR_BASE >= CFG_FLASH_BASE)
+static flash_info_t *flash_get_info(ulong base)
+{
+	int i;
+	flash_info_t * info = 0;
+
+	for (i = 0; i < CFG_MAX_FLASH_BANKS; i ++) {
+		info = & flash_info[i];
+		if (info->size && info->start[0] <= base &&
+		    base <= info->start[0] + info->size - 1)
+			break;
+	}
+
+	return i == CFG_MAX_FLASH_BANKS ? 0 : info;
+}
+#endif
 
 /*-----------------------------------------------------------------------
  */
@@ -479,11 +509,11 @@ void flash_print_info (flash_info_t * info)
 			info->start[i],
 			erased ? " E" : "  ",
 			info->protect[i] ? "RO " : "   ");
-#else
+#else	/* ! CFG_FLASH_EMPTY_INFO */
 		if ((i % 5) == 0)
 			printf ("\n   ");
 		printf (" %08lX%s",
-			info->start[i], info->protect[i] ? " (RO)  " : "     ");
+			info->start[i], info->protect[i] ? " (RO)" : "     ");
 #endif
 	}
 	putc ('\n');
@@ -538,7 +568,7 @@ int write_buff (flash_info_t * info, uchar * src, ulong addr, ulong cnt)
 		i = buffered_size > cnt ? cnt : buffered_size;
 		if ((rc = flash_write_cfibuffer (info, wp, src, i)) != ERR_OK)
 			return rc;
-		i -= (i % info->portwidth);
+		i -= i & (info->portwidth - 1);
 		wp += i;
 		src += i;
 		cnt -= i;
@@ -620,7 +650,7 @@ void flash_read_user_serial (flash_info_t * info, void *buffer, int offset,
 	src = flash_make_addr (info, 0, FLASH_OFFSET_USER_PROTECTION);
 	flash_write_cmd (info, 0, 0, FLASH_CMD_READ_ID);
 	memcpy (dst, src + offset, len);
-	flash_write_cmd (info, 0, 0, FLASH_CMD_RESET);
+	flash_write_cmd (info, 0, 0, info->cmd_reset);
 }
 
 /*
@@ -634,7 +664,7 @@ void flash_read_factory_serial (flash_info_t * info, void *buffer, int offset,
 	src = flash_make_addr (info, 0, FLASH_OFFSET_INTEL_PROTECTION);
 	flash_write_cmd (info, 0, 0, FLASH_CMD_READ_ID);
 	memcpy (buffer, src + offset, len);
-	flash_write_cmd (info, 0, 0, FLASH_CMD_RESET);
+	flash_write_cmd (info, 0, 0, info->cmd_reset);
 }
 
 #endif /* CFG_FLASH_PROTECTION */
@@ -719,7 +749,7 @@ static int flash_full_status_check (flash_info_t * info, flash_sect_t sector,
 			if (flash_isset (info, sector, 0, FLASH_STATUS_VPENS))
 				puts ("Vpp Low Error.\n");
 		}
-		flash_write_cmd (info, sector, 0, FLASH_CMD_RESET);
+		flash_write_cmd (info, sector, 0, info->cmd_reset);
 		break;
 	default:
 		break;
@@ -778,32 +808,14 @@ static void flash_add_byte (flash_info_t * info, cfiword_t * cword, uchar c)
 static void flash_make_cmd (flash_info_t * info, uchar cmd, void *cmdbuf)
 {
 	int i;
-
-#if defined(__LITTLE_ENDIAN)
-	ushort stmpw;
-	uint   stmpi;
-#endif
 	uchar *cp = (uchar *) cmdbuf;
 
-	for (i = 0; i < info->portwidth; i++)
-		*cp++ = ((i + 1) % info->chipwidth) ? '\0' : cmd;
 #if defined(__LITTLE_ENDIAN)
-	switch (info->portwidth) {
-	case FLASH_CFI_8BIT:
-		break;
-	case FLASH_CFI_16BIT:
-		stmpw = *(ushort *) cmdbuf;
-		*(ushort *) cmdbuf = __swab16 (stmpw);
-		break;
-	case FLASH_CFI_32BIT:
-		stmpi = *(uint *) cmdbuf;
-		*(uint *) cmdbuf = __swab32 (stmpi);
-		break;
-	default:
-		puts ("WARNING: flash_make_cmd: unsuppported LittleEndian mode\n");
-		break;
-	}
+	for (i = info->portwidth; i > 0; i--)
+#else
+	for (i = 1; i <= info->portwidth; i++)
 #endif
+		*cp++ = (i & (info->chipwidth - 1)) ? '\0' : cmd;
 }
 
 /*
@@ -978,7 +990,7 @@ static int flash_detect_cfi (flash_info_t * info)
 		for (info->chipwidth = FLASH_CFI_BY8;
 		     info->chipwidth <= info->portwidth;
 		     info->chipwidth <<= 1) {
-			flash_write_cmd (info, 0, 0, FLASH_CMD_RESET);
+			flash_write_cmd (info, 0, 0, info->cmd_reset);
 			flash_write_cmd (info, 0, FLASH_OFFSET_CFI, FLASH_CMD_CFI);
 			if (flash_isequal (info, 0, FLASH_OFFSET_CFI_RESP, 'Q')
 			    && flash_isequal (info, 0, FLASH_OFFSET_CFI_RESP + 1, 'R')
@@ -1003,7 +1015,7 @@ static int flash_detect_cfi (flash_info_t * info)
  * The following code cannot be run from FLASH!
  *
  */
-static ulong flash_get_size (ulong base, int banknum)
+ulong flash_get_size (ulong base, int banknum)
 {
 	flash_info_t *info = &flash_info[banknum];
 	int i, j;
@@ -1070,10 +1082,22 @@ static ulong flash_get_size (ulong base, int banknum)
 			for (j = 0; j < erase_region_count; j++) {
 				info->start[sect_cnt] = sector;
 				sector += (erase_region_size * size_ratio);
-				info->protect[sect_cnt] =
-					flash_isset (info, sect_cnt,
-						     FLASH_OFFSET_PROTECT,
-						     FLASH_STATUS_PROTECT);
+
+				/*
+				 * Only read protection status from supported devices (intel...)
+				 */
+				switch (info->vendor) {
+				case CFI_CMDSET_INTEL_EXTENDED:
+				case CFI_CMDSET_INTEL_STANDARD:
+					info->protect[sect_cnt] =
+						flash_isset (info, sect_cnt,
+							     FLASH_OFFSET_PROTECT,
+							     FLASH_STATUS_PROTECT);
+					break;
+				default:
+					info->protect[sect_cnt] = 0; /* default: not protected */
+				}
+
 				sect_cnt++;
 			}
 		}
@@ -1094,7 +1118,7 @@ static ulong flash_get_size (ulong base, int banknum)
 		}
 	}
 
-	flash_write_cmd (info, 0, 0, FLASH_CMD_RESET);
+	flash_write_cmd (info, 0, 0, info->cmd_reset);
 	return (info->size);
 }
 

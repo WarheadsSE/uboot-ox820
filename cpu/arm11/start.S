@@ -150,10 +150,11 @@ reset:
 	 * we do sys-critical inits only at reboot,
 	 * not when booting from ram!
 	 */
-#ifdef CONFIG_INIT_CRITICAL
+#ifndef CONFIG_SKIP_LOWLEVEL_INIT
 	bl	cpu_init_crit
 #endif
 
+#ifndef CONFIG_SKIP_RELOCATE_UBOOT
 relocate:					/* relocate U-Boot to RAM */
 	adr	r0, _start			/* current position of code */
 	ldr	r1, _TEXT_BASE		/* relocated position of code */
@@ -170,7 +171,7 @@ copy_loop:
 	stmia	r1!, {r3-r10}	/* copy to   target address [r1] */
 	cmp	r0, r2				/* until source end addreee [r2] */
 	ble	copy_loop
-
+#endif
 	/* Set up the stack						    */
 stack_setup:
 	ldr	r0, _TEXT_BASE		/* upper 128 KiB: relocated uboot   */

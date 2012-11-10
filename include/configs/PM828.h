@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2001-2004
+ * (C) Copyright 2001-2005
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -37,10 +37,9 @@
 
 #define CONFIG_MPC8260		1	/* This is a MPC8260 CPU	*/
 #define CONFIG_PM828		1	/* ...on a PM828 module */
+#define CONFIG_CPM2		1	/* Has a CPM2 */
 
 #undef CONFIG_DB_CR826_J30x_ON		/* J30x jumpers on D.B. carrier */
-
-#define CONFIG_CLOCKS_IN_MHZ	1	/* clocks passsed to Linux in MHz */
 
 #define CONFIG_BOOTDELAY	5	/* autoboot after 5 seconds	*/
 
@@ -49,8 +48,8 @@
 #undef	CONFIG_BOOTARGS
 #define CONFIG_BOOTCOMMAND							\
 	"bootp;"								\
-	"setenv bootargs root=/dev/nfs rw nfsroot=$(serverip):$(rootpath) "	\
-	"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask):$(hostname)::off;"	\
+	"setenv bootargs root=/dev/nfs rw nfsroot=${serverip}:${rootpath} "	\
+	"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off;"	\
 	"bootm"
 
 /* enable I2C and select the hardware/software driver */
@@ -156,20 +155,26 @@
 #define CONFIG_BOOTP_MASK	(CONFIG_BOOTP_DEFAULT|CONFIG_BOOTP_BOOTFILESIZE)
 
 #ifdef CONFIG_PCI
-#define CONFIG_COMMANDS		(CONFIG_CMD_DFL | \
-				 CFG_CMD_BEDBUG | \
-				 CFG_CMD_DATE	| \
-				 CFG_CMD_DOC	| \
-				 CFG_CMD_EEPROM | \
-				 CFG_CMD_I2C	| \
-				 CFG_CMD_PCI)
+#define CONFIG_COMMANDS	       (CONFIG_CMD_DFL	| \
+				CFG_CMD_BEDBUG	| \
+				CFG_CMD_DATE	| \
+				CFG_CMD_DHCP	| \
+				CFG_CMD_DOC	| \
+				CFG_CMD_EEPROM	| \
+				CFG_CMD_I2C	| \
+				CFG_CMD_NFS	| \
+				CFG_CMD_PCI	| \
+				CFG_CMD_SNTP	)
 #else	/* ! PCI */
-#define CONFIG_COMMANDS		(CONFIG_CMD_DFL | \
-				 CFG_CMD_BEDBUG | \
-				 CFG_CMD_DATE	| \
-				 CFG_CMD_DOC	| \
-				 CFG_CMD_EEPROM | \
-				 CFG_CMD_I2C	)
+#define CONFIG_COMMANDS	       (CONFIG_CMD_DFL	| \
+				CFG_CMD_BEDBUG	| \
+				CFG_CMD_DATE	| \
+				CFG_CMD_DHCP	| \
+				CFG_CMD_DOC	| \
+				CFG_CMD_EEPROM	| \
+				CFG_CMD_I2C	| \
+				CFG_CMD_NFS	| \
+				CFG_CMD_SNTP	)
 #endif	/* CONFIG_PCI */
 
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */

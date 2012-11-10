@@ -156,10 +156,11 @@ reset:
 	 * we do sys-critical inits only at reboot,
 	 * not when booting from ram!
 	 */
-#ifdef CONFIG_INIT_CRITICAL
+#ifndef CONFIG_SKIP_LOWLEVEL_INIT
 	bl	cpu_init_crit
 #endif
 
+#ifndef CONFIG_SKIP_RELOCATE_UBOOT
 relocate:				/* relocate U-Boot to RAM	    */
 	adr	r0, _start		/* r0 <- current position of code   */
 	ldr	r1, _TEXT_BASE		/* test if we run from flash or RAM */
@@ -176,6 +177,7 @@ copy_loop:
 	stmia	r1!, {r3-r10}		/* copy to   target address [r1]    */
 	cmp	r0, r2			/* until source end addreee [r2]    */
 	ble	copy_loop
+#endif	/* CONFIG_SKIP_RELOCATE_UBOOT */
 
 	/* Set up the stack						    */
 stack_setup:
@@ -195,7 +197,7 @@ clear_bss:
 clbss_l:str	r2, [r0]		/* clear loop...                    */
 	add	r0, r0, #4
 	cmp	r0, r1
-	bne	clbss_l
+	ble	clbss_l
 
 #if 0
 	/* try doing this stuff after the relocation */
@@ -253,16 +255,14 @@ cpu_init_crit:
 	orr	r0, r0, #0x00001000	@ set bit 12 (I) I-Cache
 	mcr	p15, 0, r0, c1, c0, 0
 
-
 	/*
 	 * before relocating, we have to setup RAM timing
 	 * because memory timing is board-dependend, you will
-	 * find a memsetup.S in your board directory.
+	 * find a lowlevel_init.S in your board directory.
 	 */
 	mov	ip, lr
-	bl	memsetup
+	bl	lowlevel_init
 	mov	lr, ip
-
 	mov	pc, lr
 
 
@@ -431,39 +431,3 @@ fiq:
 	bl 	do_fiq
 
 #endif
-
-	.align	5
-.globl reset_cpu
-reset_cpu:
-#ifdef CONFIG_S3C2400
-	bl	disable_interrupts
-# ifdef CONFIG_TRAB
-	bl	disable_vfd
-# endif
-	ldr	r1, _rWTCON
-	ldr	r2, _rWTCNT
-	/* Disable watchdog */
-	mov	r3, #0x0000
-	str	r3, [r1]
-	/* Initialize watchdog timer count register */
-	mov	r3, #0x0001
-	str	r3, [r2]
-	/* Enable watchdog timer; assert reset at timer timeout */
-	mov	r3, #0x0021
-	str	r3, [r1]
-_loop_forever:
-	b	_loop_forever
-_rWTCON:
-	.word	0x15300000
-_rWTCNT:
-	.word	0x15300008
-#else /* ! CONFIG_S3C2400 */
-	mov     ip, #0
-	mcr     p15, 0, ip, c7, c7, 0           @ invalidate cache
-	mcr     p15, 0, ip, c8, c7, 0           @ flush TLB (v4)
-	mrc     p15, 0, ip, c1, c0, 0           @ get ctrl register
-	bic     ip, ip, #0x000f                 @ ............wcam
-	bic     ip, ip, #0x2100                 @ ..v....s........
-	mcr     p15, 0, ip, c1, c0, 0           @ ctrl register
-	mov     pc, r0
-#endif /* CONFIG_S3C2400 */

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2003-2004
+ * (C) Copyright 2003-2005
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -29,34 +29,70 @@
  * (easy to change)
  */
 
-#define CONFIG_MPC5xxx		1	/* This is an MPC5xxx CPU */
-#define CONFIG_MPC5200		1	/* (more precisely an MPC5200 CPU) */
-#define CONFIG_INKA4X0		1	/* INKA4x0 board */
+#define CONFIG_MPC5xxx		1	/* This is an MPC5xxx CPU		*/
+#define CONFIG_MPC5200		1	/* (more precisely an MPC5200 CPU)	*/
+#define CONFIG_INKA4X0		1	/* INKA4x0 board			*/
 
-#define CFG_MPC5XXX_CLKIN	33000000 /* ... running at 33.000000MHz */
+#define CFG_MPC5XXX_CLKIN	33000000 /* ... running at 33.000000MHz		*/
 
-#define BOOTFLAG_COLD		0x01	/* Normal Power-On: Boot from FLASH  */
-#define BOOTFLAG_WARM		0x02	/* Software reboot	     */
+#define BOOTFLAG_COLD		0x01	/* Normal Power-On: Boot from FLASH	*/
+#define BOOTFLAG_WARM		0x02	/* Software reboot			*/
 
-#define CFG_CACHELINE_SIZE	32	/* For MPC5xxx CPUs */
+#define CONFIG_MISC_INIT_F	1	/* Use misc_init_f()			*/
+
+#define CFG_CACHELINE_SIZE	32	/* For MPC5xxx CPUs			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
-#  define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value */
+#  define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value	*/
 #endif
 
 /*
  * Serial console configuration
  */
-#define CONFIG_PSC_CONSOLE	1	/* console is on PSC1 */
-#define CONFIG_BAUDRATE		115200	/* ... at 115200 bps */
+#define CONFIG_PSC_CONSOLE	1	/* console is on PSC1	*/
+#define CONFIG_BAUDRATE		115200	/* ... at 115200 bps	*/
 #define CFG_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200, 230400 }
+
+/*
+ * PCI Mapping:
+ * 0x40000000 - 0x4fffffff - PCI Memory
+ * 0x50000000 - 0x50ffffff - PCI IO Space
+ */
+#define CONFIG_PCI		1
+#define CONFIG_PCI_PNP		1
+#define CONFIG_PCI_SCAN_SHOW	1
+
+#define CONFIG_PCI_MEM_BUS	0x40000000
+#define CONFIG_PCI_MEM_PHYS	CONFIG_PCI_MEM_BUS
+#define CONFIG_PCI_MEM_SIZE	0x10000000
+
+#define CONFIG_PCI_IO_BUS	0x50000000
+#define CONFIG_PCI_IO_PHYS	CONFIG_PCI_IO_BUS
+#define CONFIG_PCI_IO_SIZE	0x01000000
+
+#define CFG_XLB_PIPELINING	1
+
+/* Partitions */
+#define CONFIG_MAC_PARTITION
+#define CONFIG_DOS_PARTITION
+#define CONFIG_ISO_PARTITION
 
 /*
  * Supported commands
  */
-#define CONFIG_COMMANDS	       (CONFIG_CMD_DFL | CFG_CMD_DHCP)
+#define CONFIG_COMMANDS	       (CONFIG_CMD_DFL	| \
+				CFG_CMD_DHCP	| \
+				CFG_CMD_EXT2	| \
+				CFG_CMD_FAT	| \
+				CFG_CMD_IDE	| \
+				CFG_CMD_NFS	| \
+				CFG_CMD_PCI	| \
+				CFG_CMD_SNTP	| \
+				CFG_CMD_USB	)
 
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
 #include <cmd_confdefs.h>
+
+#define	CONFIG_TIMESTAMP	1	/* Print image info with timestamp */
 
 #if (TEXT_BASE == 0xFFE00000)		/* Boot low */
 #   define CFG_LOWBOOT		1
@@ -76,14 +112,14 @@
 #define CONFIG_EXTRA_ENV_SETTINGS					\
 	"netdev=eth0\0"							\
 	"nfsargs=setenv bootargs root=/dev/nfs rw "			\
-		"nfsroot=$(serverip):$(rootpath)\0"			\
+		"nfsroot=${serverip}:${rootpath}\0"			\
 	"ramargs=setenv bootargs root=/dev/ram rw\0"			\
-	"addip=setenv bootargs $(bootargs) "				\
-		"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask)"	\
-		":$(hostname):$(netdev):off panic=1\0"			\
+	"addip=setenv bootargs ${bootargs} "				\
+		"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}"	\
+		":${hostname}:${netdev}:off panic=1\0"			\
 	"flash_nfs=run nfsargs addip;"					\
-		"bootm $(kernel_addr)\0"				\
-	"net_nfs=tftp 200000 $(bootfile);run nfsargs addip;bootm\0"	\
+		"bootm ${kernel_addr}\0"				\
+	"net_nfs=tftp 200000 ${bootfile};run nfsargs addip;bootm\0"	\
 	"rootpath=/opt/eldk/ppc_82xx\0"					\
 	""
 
@@ -161,8 +197,8 @@
 /*
  * GPIO configuration
  *
- * use pin gpio_wkup_6 as second SDRAM chip select (mem_cs1):
- *	Bit 0 (mask: 0x80000000): 1
+ * use CS1 as gpio_wkup_6 output
+ *	Bit 0 (mask: 0x80000000): 0
  * use ALT CAN position: Bits 2-3 (mask: 0x30000000):
  *	00 -> No Alternatives, I2C1 is used for onboard EEPROM
  *	01 -> CAN1 on I2C1, CAN2 on Tmr0/1 do not use on TQM5200 with onboard
@@ -170,14 +206,8 @@
  * use PSC1 as UART: Bits 28-31 (mask: 0x00000007): 0100
  * use PSC6_1 and PSC6_3 as GPIO: Bits 9:11 (mask: 0x07000000):
  *	011 -> PSC6 could not be used as UART or CODEC. IrDA still possible.
- * GPIO on PSC6_3 is used in post_hotkeys_pressed() to enable extended POST
- * tests.
  */
-#if defined (CONFIG_MINIFAP)
-#define CFG_GPS_PORT_CONFIG	0x93000004
-#else
-#define CFG_GPS_PORT_CONFIG	0x83000004
-#endif
+#define CFG_GPS_PORT_CONFIG	0x01001004
 
 /*
  * RTC configuration
@@ -231,7 +261,58 @@
 #define CFG_CS0_START		CFG_FLASH_BASE
 #define CFG_CS0_SIZE		CFG_FLASH_SIZE
 
+/* 32Mbit SRAM @0x30000000 */
+#define CFG_CS1_START		0x30000000
+#define CFG_CS1_SIZE		0x00400000
+#define CFG_CS1_CFG		0x31800 /* for pci_clk = 33 MHz */
+
+/* 2 quad UART @0x80000000 (MBAR is relocated to 0xF0000000) */
+#define CFG_CS2_START		0x80000000
+#define CFG_CS2_SIZE		0x0001000
+#define CFG_CS2_CFG		0x21800  /* for pci_clk = 33 MHz */
+
+/* GPIO in @0x30400000 */
+#define CFG_CS3_START		0x30400000
+#define CFG_CS3_SIZE		0x00100000
+#define CFG_CS3_CFG		0x31800 /* for pci_clk = 33 MHz */
+
 #define CFG_CS_BURST		0x00000000
 #define CFG_CS_DEADCYCLE	0x33333333
+
+/*-----------------------------------------------------------------------
+ * USB stuff
+ *-----------------------------------------------------------------------
+ */
+#define CONFIG_USB_OHCI
+#define CONFIG_USB_CLOCK	0x00015555
+#define CONFIG_USB_CONFIG	0x00001000
+#define CONFIG_USB_STORAGE
+
+/*-----------------------------------------------------------------------
+ * IDE/ATA stuff Supports IDE harddisk
+ *-----------------------------------------------------------------------
+ */
+
+#undef  CONFIG_IDE_8xx_PCCARD		/* Use IDE with PC Card	Adapter	*/
+
+#undef	CONFIG_IDE_8xx_DIRECT		/* Direct IDE    not supported	*/
+#undef	CONFIG_IDE_LED			/* LED   for ide not supported	*/
+
+#define	CONFIG_IDE_RESET		/* reset for ide supported	*/
+#define CONFIG_IDE_PREINIT
+
+#define CFG_IDE_MAXBUS		1	/* max. 1 IDE bus		*/
+#define CFG_IDE_MAXDEVICE	2	/* max. 1 drive per IDE bus	*/
+
+#define CFG_ATA_IDE0_OFFSET	0x0000
+#define CFG_ATA_BASE_ADDR	MPC5XXX_ATA
+#define CFG_ATA_DATA_OFFSET	0x0060	/* Offset for data I/O		*/
+#define CFG_ATA_REG_OFFSET (CFG_ATA_DATA_OFFSET) /* Offset for normal register accesses */
+#define CFG_ATA_ALT_OFFSET	0x005C	/* Offset for alternate registers */
+#define CFG_ATA_STRIDE          4	/* Interval between registers	*/
+
+#define CONFIG_ATAPI            1
+
+#define CFG_BRIGHTNESS          0xFF	/* LCD Default Brightness (255 = off) */
 
 #endif /* __CONFIG_H */

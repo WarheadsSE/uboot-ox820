@@ -25,12 +25,6 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-/*
- * If we are developing, we might want to start armboot from ram
- * so we MUST NOT initialize critical regs like mem-timing ...
- */
-#define CONFIG_INIT_CRITICAL		/* undef for developing */
-
 /* ARM asynchronous clock */
 #define AT91C_MAIN_CLOCK	179712000	/* from 18.432 MHz crystal (18432000 / 4 * 39) */
 #define AT91C_MASTER_CLOCK	59904000	/* peripheral clock (AT91C_MASTER_CLOCK / 3) */
@@ -38,15 +32,47 @@
 
 #define AT91_SLOW_CLOCK		32768	/* slow clock */
 
-#define CONFIG_AT91RM9200DK	1	/* on an AT91RM9200DK Board	 */
-#undef CONFIG_USE_IRQ			/* we don't need IRQ/FIQ stuff */
+#define CONFIG_ARM920T		1	/* This is an ARM920T Core	*/
+#define CONFIG_AT91RM9200	1	/* It's an Atmel AT91RM9200 SoC	*/
+#define CONFIG_AT91RM9200DK	1	/* on an AT91RM9200DK Board	*/
+#undef  CONFIG_USE_IRQ			/* we don't need IRQ/FIQ stuff	*/
+#define USE_920T_MMU		1
+
 #define CONFIG_CMDLINE_TAG	1	/* enable passing of ATAGs	*/
 #define CONFIG_SETUP_MEMORY_TAGS 1
 #define CONFIG_INITRD_TAG	1
 
-/* define this to include the functionality of boot.bin in u-boot */
-#undef CONFIG_BOOTBINFUNC
+#ifndef CONFIG_SKIP_LOWLEVEL_INIT
+#define CFG_USE_MAIN_OSCILLATOR		1
+/* flash */
+#define MC_PUIA_VAL	0x00000000
+#define MC_PUP_VAL	0x00000000
+#define MC_PUER_VAL	0x00000000
+#define MC_ASR_VAL	0x00000000
+#define MC_AASR_VAL	0x00000000
+#define EBI_CFGR_VAL	0x00000000
+#define SMC2_CSR_VAL	0x00003284 /* 16bit, 2 TDF, 4 WS */
 
+/* clocks */
+#define PLLAR_VAL	0x20263E04 /* 179.712000 MHz for PCK */
+#define PLLBR_VAL	0x10483E0E /* 48.054857 MHz (divider by 2 for USB) */
+#define MCKR_VAL	0x00000202 /* PCK/3 = MCK Master Clock = 59.904000MHz from PLLA */
+
+/* sdram */
+#define PIOC_ASR_VAL	0xFFFF0000 /* Configure PIOC as peripheral (D16/D31) */
+#define PIOC_BSR_VAL	0x00000000
+#define PIOC_PDR_VAL	0xFFFF0000
+#define EBI_CSA_VAL	0x00000002 /* CS1=SDRAM */
+#define SDRC_CR_VAL	0x2188c155 /* set up the SDRAM */
+#define SDRAM		0x20000000 /* address of the SDRAM */
+#define SDRAM1		0x20000080 /* address of the SDRAM */
+#define SDRAM_VAL	0x00000000 /* value written to SDRAM */
+#define SDRC_MR_VAL	0x00000002 /* Precharge All */
+#define SDRC_MR_VAL1	0x00000004 /* refresh */
+#define SDRC_MR_VAL2	0x00000003 /* Load Mode Register */
+#define SDRC_MR_VAL3	0x00000000 /* Normal Mode */
+#define SDRC_TR_VAL	0x000002E0 /* Write refresh rate */
+#endif	/* CONFIG_SKIP_LOWLEVEL_INIT */
 /*
  * Size of malloc() pool
  */
@@ -54,8 +80,6 @@
 #define CFG_GBL_DATA_SIZE	128	/* size in bytes reserved for initial data */
 
 #define CONFIG_BAUDRATE 115200
-
-#define CFG_AT91C_BRGR_DIVISOR	33	/* hardcode so no __divsi3 : AT91C_MASTER_CLOCK / baudrate / 16 */
 
 /*
  * Hardware drivers
@@ -74,7 +98,7 @@
 /* #define CONFIG_ENV_OVERWRITE	1 */
 
 #define CONFIG_COMMANDS		\
-		       ((CONFIG_CMD_DFL | \
+		       ((CONFIG_CMD_DFL | CFG_CMD_MII |\
 			CFG_CMD_DHCP ) & \
 		      ~(CFG_CMD_BDI | \
 			CFG_CMD_IMI | \
@@ -149,19 +173,19 @@
 #define CFG_ENV_SIZE			0x2000  /* 0x8000 */
 #else
 #define CFG_ENV_IS_IN_FLASH		1
-#ifdef CONFIG_BOOTBINFUNC
+#ifdef CONFIG_SKIP_LOWLEVEL_INIT
 #define CFG_ENV_ADDR			(PHYS_FLASH_1 + 0x60000)  /* after u-boot.bin */
 #define CFG_ENV_SIZE			0x10000 /* sectors are 64K here */
 #else
 #define CFG_ENV_ADDR			(PHYS_FLASH_1 + 0xe000)  /* between boot.bin and u-boot.bin.gz */
 #define CFG_ENV_SIZE			0x2000  /* 0x8000 */
-#endif
-#endif
+#endif	/* CONFIG_SKIP_LOWLEVEL_INIT */
+#endif	/* CFG_ENV_IS_IN_DATAFLASH */
 
 
 #define CFG_LOAD_ADDR		0x21000000  /* default load address */
 
-#ifdef CONFIG_BOOTBINFUNC
+#ifdef CONFIG_SKIP_LOWLEVEL_INIT
 #define CFG_BOOT_SIZE		0x00 /* 0 KBytes */
 #define CFG_U_BOOT_BASE		PHYS_FLASH_1
 #define CFG_U_BOOT_SIZE		0x60000 /* 384 KBytes */
@@ -169,7 +193,7 @@
 #define CFG_BOOT_SIZE		0x6000 /* 24 KBytes */
 #define CFG_U_BOOT_BASE		(PHYS_FLASH_1 + 0x10000)
 #define CFG_U_BOOT_SIZE		0x10000 /* 64 KBytes */
-#endif
+#endif	/* CONFIG_SKIP_LOWLEVEL_INIT */
 
 #define CFG_BAUDRATE_TABLE	{115200 , 19200, 38400, 57600, 9600 }
 

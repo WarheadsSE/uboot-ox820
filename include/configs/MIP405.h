@@ -128,7 +128,7 @@
 #define CONFIG_BAUDRATE		9600	/* STD Baudrate */
 #define CONFIG_BOOTDELAY	5
 /* autoboot (do NOT change this set environment variable "bootdelay" to -1 instead) */
-#define CONFIG_BOOT_RETRY_TIME	-10	/* feature is avaiable but not enabled */
+/* #define CONFIG_BOOT_RETRY_TIME	-10	/XXX* feature is available but not enabled */
 #define CONFIG_ZERO_BOOTDELAY_CHECK  	/* check console even if bootdelay = 0 */
 
 #define CONFIG_BOOTCOMMAND	"diskboot 400000 0:1; bootm" /* autoboot command		*/
@@ -236,13 +236,28 @@
 #define CFG_FLASH_ERASE_TOUT	120000	/* Timeout for Flash Erase (in ms)	*/
 #define CFG_FLASH_WRITE_TOUT	500	/* Timeout for Flash Write (in ms)	*/
 
-#define CFG_JFFS2_FIRST_BANK    0           /* use for JFFS2 */
-#define CFG_JFFS2_NUM_BANKS     1           /* ! second bank contains U-Boot */
+/*
+ * JFFS2 partitions
+ *
+ */
+/* No command line, one static partition, whole device */
+#undef CONFIG_JFFS2_CMDLINE
+#define CONFIG_JFFS2_DEV		"nor0"
+#define CONFIG_JFFS2_PART_SIZE		0xFFFFFFFF
+#define CONFIG_JFFS2_PART_OFFSET	0x00000000
+
+/* mtdparts command line support */
+/* Note: fake mtd_id used, no linux mtd map file */
+/*
+#define CONFIG_JFFS2_CMDLINE
+#define MTDIDS_DEFAULT		"nor0=mip405-0"
+#define MTDPARTS_DEFAULT	"mtdparts=mip405-0:-(jffs2)"
+*/
 
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		0x4000	/* For IBM 405GPr CPUs			*/
+#define CFG_DCACHE_SIZE		0x4000	/* For AMCC 405GPr CPUs			*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
 #define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value	*/
@@ -366,17 +381,6 @@
  ************************************************************/
 #define CONFIG_ATAPI			/* enable ATAPI Support */
 
-/************************************************************
- * SCSI support (experimental) only SYM53C8xx supported
- ************************************************************/
-#undef CONFIG_SCSI_SYM53C8XX
-
-#ifdef CONFIG_SCSI_SYM53C8XX
-#define CFG_SCSI_MAX_LUN	8 /* number of supported LUNs */
-#define CFG_SCSI_MAX_SCSI_ID	7 /* maximum SCSI ID (0..6) */
-#define CFG_SCSI_MAX_DEVICE	CFG_SCSI_MAX_SCSI_ID * CFG_SCSI_MAX_LUN /* maximum Target devices */
-#define CFG_SCSI_SPIN_UP_TIME	2
-#endif /* CONFIG_SCSI_SYM53C8XX */
 /************************************************************
  * DISK Partition support
  ************************************************************/

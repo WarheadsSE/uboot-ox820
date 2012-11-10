@@ -42,17 +42,19 @@
 
 #define CONFIG_SYS_CLK_FREQ     33333400 /* external frequency to pll   */
 
+#define CONFIG_BOARD_TYPES	1	/* support board types		*/
+
 #define CONFIG_BAUDRATE		9600
 #define CONFIG_BOOTDELAY	3	/* autoboot after 3 seconds	*/
 
 #undef	CONFIG_BOOTARGS
 #define CONFIG_RAMBOOTCOMMAND							\
-	"setenv bootargs root=/dev/ram rw nfsroot=$(serverip):$(rootpath) "	\
-	"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask):$(hostname)::off;"	\
+	"setenv bootargs root=/dev/ram rw nfsroot=${serverip}:${rootpath} "	\
+	"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off;"	\
 	"bootm ffc00000 ffca0000"
 #define CONFIG_NFSBOOTCOMMAND							\
-	"setenv bootargs root=/dev/nfs rw nfsroot=$(serverip):$(rootpath) "	\
-	"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask):$(hostname)::off;"	\
+	"setenv bootargs root=/dev/nfs rw nfsroot=${serverip}:${rootpath} "	\
+	"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off;"	\
 	"bootm ffc00000"
 #define CONFIG_BOOTCOMMAND CONFIG_RAMBOOTCOMMAND
 
@@ -261,7 +263,7 @@
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		16384	/* For IBM 405 CPUs, older 405 ppc's    */
+#define CFG_DCACHE_SIZE		16384	/* For AMCC 405 CPUs, older 405 ppc's   */
 					/* have only 8kB, 16kB is save here     */
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
@@ -321,6 +323,7 @@
 
 /* FPGA internal regs */
 #define CFG_FPGA_CTRL           0x008
+#define CFG_FPGA_CTRL2          0x00a
 
 /* FPGA Control Reg */
 #define CFG_FPGA_CTRL_CF_RESET  0x0001
@@ -348,13 +351,13 @@
 
 /* Image information... */
 #define CONFIG_LCD_USED         CONFIG_LCD_BIG
-#define CFG_LCD_HEADER_NAME     "s1d13806_640_480_16bpp.h"
+#define CFG_LCD_HEADER_NAME     "../common/s1d13806_640_480_16bpp.h"
 #define CFG_LCD_LOGO_NAME       "logo_640_480_24bpp.c"
 
 #define CFG_LCD_MEM             CFG_LCD_BIG_MEM
 #define CFG_LCD_REG             CFG_LCD_BIG_REG
 
-#define CFG_LCD_LOGO_MAX_SIZE   (1024*1024)
+#define CFG_VIDEO_LOGO_MAX_SIZE (1 << 20)
 
 /*-----------------------------------------------------------------------
  * Definitions for initial stack pointer and data area (in data cache)

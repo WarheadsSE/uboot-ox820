@@ -247,7 +247,7 @@
 	"echo;" \
 	"bootp;" \
 	"setenv bootargs root=/dev/ram0 rw " \
-	"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask):$(hostname)::off;" \
+	"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off;" \
 	"bootm"
 #endif /* CONFIG_BOOT_ROOT_INITRD */
 
@@ -256,8 +256,8 @@
 	"version;" \
 	"echo;" \
 	"bootp;" \
-	"setenv bootargs root=/dev/nfs rw nfsroot=$(serverip):$(rootpath) " \
-	"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask):$(hostname)::off;" \
+	"setenv bootargs root=/dev/nfs rw nfsroot=${serverip}:${rootpath} " \
+	"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off;" \
 	"bootm"
 #endif /* CONFIG_BOOT_ROOT_NFS */
 
@@ -297,6 +297,7 @@
 
 #define CONFIG_MPC8260		1	/* This is an MPC8260 CPU   */
 #define CONFIG_PPMC8260		1	/* on an Wind River PPMC8260 Board  */
+#define CONFIG_CPM2		1	/* Has a CPM2 */
 
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
 #include <cmd_confdefs.h>

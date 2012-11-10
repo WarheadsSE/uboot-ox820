@@ -48,7 +48,11 @@
 #include <config.h>
 #include <net.h>
 
-#if defined(CONFIG_MPC8560)
+#if defined(CONFIG_MII) || (CONFIG_COMMANDS & CFG_CMD_MII)
+#include <miiphy.h>
+#endif
+
+#if defined(CONFIG_CPM2)
 
 #if defined(CONFIG_ETHER_ON_FCC) && (CONFIG_COMMANDS & CFG_CMD_NET) && \
 	defined(CONFIG_NET_MULTI)
@@ -135,7 +139,7 @@ static RTXBD rtx __attribute__ ((aligned(8)));
 #error "rtx must be 64-bit aligned"
 #endif
 
-#define ET_DEBUG
+#undef ET_DEBUG
 
 static int fec_send(struct eth_device* dev, volatile void *packet, int length)
 {
@@ -157,7 +161,7 @@ static int fec_send(struct eth_device* dev, volatile void *packet, int length)
     rtx.txbd[txIdx].cbd_bufaddr = (uint)packet;
     rtx.txbd[txIdx].cbd_datlen = length;
     rtx.txbd[txIdx].cbd_sc |= (BD_ENET_TX_READY | BD_ENET_TX_LAST | \
-			       BD_ENET_TX_TC );
+			       BD_ENET_TX_TC | BD_ENET_TX_PAD);
 
     for(i=0; rtx.txbd[txIdx].cbd_sc & BD_ENET_TX_READY; i++) {
 	if (i >= TOUT_LOOP) {
@@ -303,7 +307,9 @@ static int fec_init(struct eth_device* dev, bd_t *bis)
      * Allocate space in the reserved FCC area of DPRAM for the
      * internal buffers.  No one uses this space (yet), so we
      * can do this.  Later, we will add resource management for
-     * this area. CPM_FCC_SPECIAL_BASE: 0xb000.
+     * this area.
+     * CPM_FCC_SPECIAL_BASE:	0xB000 for MPC8540, MPC8560
+     *				0x9000 for MPC8541, MPC8555
      */
     mem_addr = CPM_FCC_SPECIAL_BASE + ((info->ether_index) * 64);
     pram_ptr->fen_genfcc.fcc_riptr = mem_addr;
@@ -414,7 +420,7 @@ static int fec_init(struct eth_device* dev, bd_t *bis)
 	immr->im_cpm.im_cpm_fcc3.gfmr |= FCC_GFMR_ENT | FCC_GFMR_ENR;
     }
 
-    return 0;
+    return 1;
 }
 
 static void fec_halt(struct eth_device* dev)
@@ -451,6 +457,12 @@ int fec_initialize(bd_t *bis)
 		dev->recv   = fec_recv;
 
 		eth_register(dev);
+
+#if (defined(CONFIG_MII) || (CONFIG_COMMANDS & CFG_CMD_MII)) \
+		&& defined(CONFIG_BITBANGMII)
+		miiphy_register(dev->name,
+				bb_miiphy_read,	bb_miiphy_write);
+#endif
 	}
 
 	return 1;
@@ -458,4 +470,4 @@ int fec_initialize(bd_t *bis)
 
 #endif	/* CONFIG_ETHER_ON_FCC && CFG_CMD_NET && CONFIG_NET_MULTI */
 
-#endif /* CONFIG_MPC8560 */
+#endif /* CONFIG_CPM2 */

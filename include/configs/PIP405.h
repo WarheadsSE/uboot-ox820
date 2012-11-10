@@ -112,7 +112,7 @@
 
 #define CONFIG_BOOTDELAY	5
 /* autoboot (do NOT change this set environment variable "bootdelay" to -1 instead) */
-#define CONFIG_BOOT_RETRY_TIME	-10	/* feature is avaiable but not enabled */
+/* #define CONFIG_BOOT_RETRY_TIME	-10	/XXX* feature is available but not enabled */
 #define CONFIG_ZERO_BOOTDELAY_CHECK  	/* check console even if bootdelay = 0 */
 
 
@@ -224,7 +224,7 @@
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		8192	/* For IBM 405 CPUs			*/
+#define CFG_DCACHE_SIZE		8192	/* For AMCC 405 CPUs			*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
 #define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value	*/

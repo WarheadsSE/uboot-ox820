@@ -24,7 +24,7 @@
  * config for XPedite1000 from XES Inc.
  * Ported from EBONY config by Travis B. Sawyer <tsawyer@sandburst.com>
  * (C) Copyright 2003 Sandburst Corporation
- * board/config_EBONY.h - configuration for IBM 440GP Ref (Ebony)
+ * board/config_EBONY.h - configuration for AMCC 440GP Ref (Ebony)
  ***********************************************************************/
 
 #ifndef __CONFIG_H
@@ -36,7 +36,7 @@
 #define CONFIG_XPEDITE1K	1		/* Board is XPedite 1000 */
 #define CONFIG_4xx		1		/* ... PPC4xx family	*/
 #define CONFIG_440		1
-#define CONFIG_440_GX		1		/* 440 GX */
+#define CONFIG_440GX		1		/* 440 GX */
 #define CONFIG_BOARD_EARLY_INIT_F 1		/* Call board_pre_init	*/
 #undef	CFG_DRAM_TEST				/* Disable-takes long time! */
 #define CONFIG_SYS_CLK_FREQ	33333333	/* external freq to pll */
@@ -175,6 +175,7 @@ extern void out32(unsigned int, unsigned long);
 #define CONFIG_PHY3_ADDR	8	/* PHY address phy3 */
 #define CONFIG_NET_MULTI	1
 #define CONFIG_PHY_GIGE		1	/* Include GbE speed/duplex detection */
+#define CONFIG_PHY_RESET        1       /* reset phy upon startup         */
 #define CFG_RX_ETH_BUFFER   32	/* Number of ethernet rx buffers & descriptors */
 
 #define CONFIG_HAS_ETH1		1	/* add support for "eth1addr"	*/
@@ -252,7 +253,7 @@ extern void out32(unsigned int, unsigned long);
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		8192 /* For IBM 440GX CPUs */
+#define CFG_DCACHE_SIZE		8192 /* For AMCC 440GX CPUs */
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
 #define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value	*/

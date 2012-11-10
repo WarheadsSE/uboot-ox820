@@ -2,6 +2,9 @@
  * (C) Copyright 2001-2004
  * Stefan Roese, esd gmbh germany, stefan.roese@esd-electronics.com
  *
+ * (C) Copyright 2005
+ * Stefan Roese, DENX Software Engineering, sr@denx.de.
+ *
  * See file CREDITS for list of people who contributed to this
  * project.
  *
@@ -52,6 +55,10 @@
 
 #define CONFIG_PREBOOT	        "autoupd"
 
+#define	CONFIG_EXTRA_ENV_SETTINGS					\
+	"pciconfighost=1\0"						\
+	""
+
 #define CFG_LOADS_BAUD_CHANGE	1	/* allow baudrate change	*/
 
 #define CONFIG_MII		1	/* MII PHY management		*/
@@ -60,17 +67,48 @@
 
 #define CONFIG_PHY_CLK_FREQ	EMAC_STACR_CLK_66MHZ /* 66 MHz OPB clock*/
 
+/*
+ * Video console
+ */
+#define CONFIG_VIDEO			/* for sm501 video support	*/
+
+#ifdef CONFIG_VIDEO
+#define CONFIG_VIDEO_SM501
+#if 0
+#define CONFIG_VIDEO_SM501_32BPP
+#else
+#define CONFIG_VIDEO_SM501_16BPP
+#endif
+#define CONFIG_CFB_CONSOLE
+#define CONFIG_VIDEO_LOGO
+#define CONFIG_VGA_AS_SINGLE_DEVICE
+#define CONFIG_CONSOLE_EXTRA_INFO
+#define CONFIG_VIDEO_SW_CURSOR
+#define CONFIG_SPLASH_SCREEN
+#define CFG_CONSOLE_IS_IN_ENV
+#define CONFIG_SPLASH_SCREEN
+#define CONFIG_VIDEO_BMP_GZIP		/* gzip compressed bmp images	*/
+#define CFG_VIDEO_LOGO_MAX_SIZE	(2 << 20)	/* for decompressed img */
+
+#define ADD_BMP_CMD		CFG_CMD_BMP
+#else
+#define ADD_BMP_CMD		0
+#endif /* CONFIG_VIDEO */
+
 #define CONFIG_COMMANDS	      ( CONFIG_CMD_DFL	| \
 				CFG_CMD_DHCP	| \
 				CFG_CMD_PCI	| \
 				CFG_CMD_IRQ	| \
 				CFG_CMD_IDE	| \
 				CFG_CMD_FAT	| \
+				CFG_CMD_EXT2	| \
 				CFG_CMD_ELF	| \
 				CFG_CMD_NAND	| \
 				CFG_CMD_I2C	| \
+				CFG_CMD_DATE	| \
 				CFG_CMD_MII	| \
 				CFG_CMD_PING	| \
+				ADD_BMP_CMD	| \
 				CFG_CMD_EEPROM  )
 
 #define CONFIG_MAC_PARTITION
@@ -111,7 +149,7 @@
 
 #define CFG_DEVICE_NULLDEV      1       /* include nulldev device       */
 
-#define CFG_CONSOLE_INFO_QUIET  1       /* don't print console @ startup*/
+#undef  CFG_CONSOLE_INFO_QUIET          /* print console @ startup	*/
 
 #define CONFIG_AUTO_COMPLETE	1       /* add autocompletion support   */
 
@@ -138,6 +176,13 @@
 #define CONFIG_VERSION_VARIABLE	1       /* include version env variable */
 
 #define CFG_RX_ETH_BUFFER	16      /* use 16 rx buffer on 405 emac */
+
+/*-----------------------------------------------------------------------
+ * RTC stuff
+ *-----------------------------------------------------------------------
+ */
+#define CONFIG_RTC_DS1338
+#define CFG_I2C_RTC_ADDR	0x68
 
 /*-----------------------------------------------------------------------
  * NAND-FLASH stuff
@@ -263,7 +308,7 @@
 #define CFG_FLASH_BASE		0xFFF80000
 #define CFG_MONITOR_BASE	TEXT_BASE
 #define CFG_MONITOR_LEN		(512 * 1024)	/* Reserve 512 kB for Monitor	*/
-#define CFG_MALLOC_LEN		(2 * 1024*1024)	/* Reserve 2 MB for malloc()	*/
+#define CFG_MALLOC_LEN		(4 << 20)	/* Reserve 4 MB for malloc()	*/
 
 #if (CFG_MONITOR_BASE < FLASH_BASE0_PRELIM)
 # define CFG_RAMBOOT		1
@@ -294,6 +339,8 @@
 #define CFG_I2C_SLAVE		0x7F
 
 #define CFG_I2C_EEPROM_ADDR	0x50	/* EEPROM CAT24WC08		*/
+#define CFG_EEPROM_WREN         1
+
 #if 1 /* test-only */
 /* CAT24WC08/16... */
 #define CFG_I2C_EEPROM_ADDR_LEN	1	/* Bytes of address		*/
@@ -317,7 +364,7 @@
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		16384	/* For IBM 405 CPUs, older 405 ppc's    */
+#define CFG_DCACHE_SIZE		16384	/* For AMCC 405 CPUs, older 405 ppc's    */
 					/* have only 8kB, 16kB is save here     */
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
@@ -361,8 +408,6 @@
 #define CFG_LCD_BIG_REG         0xF1000000  /* Epson S1D13806 Reg Base Address  */
 #define CFG_LCD_SMALL_MEM       0xF1400000  /* Epson S1D13704 Mem Base Address  */
 #define CFG_LCD_SMALL_REG       0xF140FFE0  /* Epson S1D13704 Reg Base Address  */
-
-#define CFG_LCD_LOGO_MAX_SIZE   (1024*1024)
 
 /*-----------------------------------------------------------------------
  * Universal Interrupt Controller (UIC) Setup
@@ -449,7 +494,8 @@
 #define CFG_GPIO0_TCR		0xF7FE0017
 
 #define CFG_LCD_ENDIAN		(0x80000000 >> 7)
-#define CFG_TOUCH_RST		(0x80000000 >> 9)
+#define CFG_EEPROM_WP		(0x80000000 >> 8)   /* GPIO8 */
+#define CFG_TOUCH_RST		(0x80000000 >> 9)   /* GPIO9 */
 #define CFG_LCD0_RST		(0x80000000 >> 30)
 #define CFG_LCD1_RST		(0x80000000 >> 31)
 

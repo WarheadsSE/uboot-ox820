@@ -34,6 +34,7 @@
 #if defined(CONFIG_8xx)
 #include <asm/8xx_immap.h>
 #include <commproc.h>
+#include <asm/iopin_8xx.h>
 #elif defined(CONFIG_8260)
 #include <asm/immap_8260.h>
 #include <asm/cpm_8260.h>
@@ -316,13 +317,21 @@ do_iopinfo (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 int
 do_iopset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-#if defined(CONFIG_8260)
 	uint rcode = 0;
+	iopin_t iopin;
 	static uint port = 0;
 	static uint pin = 0;
 	static uint value = 0;
-	static enum { DIR, PAR, SOR, ODR, DAT } cmd = DAT;
-	iopin_t iopin;
+	static enum {
+		DIR,
+		PAR,
+		SOR,
+		ODR,
+		DAT,
+#if defined(CONFIG_8xx)
+		INT
+#endif
+	} cmd = DAT;
 
 	if (argc != 5) {
 		puts ("iopset PORT PIN CMD VALUE\n");
@@ -356,6 +365,11 @@ do_iopset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	case 's':
 		cmd = SOR;
 		break;
+#if defined(CONFIG_8xx)
+	case 'i':
+		cmd = INT;
+		break;
+#endif
 	default:
 		printf ("iopset: unknown command %s\n", argv[3]);
 		rcode = 1;
@@ -369,6 +383,7 @@ do_iopset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	if (rcode == 0) {
 		iopin.port = port;
 		iopin.pin = pin;
+		iopin.flag = 0;
 		switch (cmd) {
 		case DIR:
 			if (value)
@@ -400,14 +415,18 @@ do_iopset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			else
 				iopin_set_low (&iopin);
 			break;
+#if defined(CONFIG_8xx)
+		case INT:
+			if (value)
+				iopin_set_falledge (&iopin);
+			else
+				iopin_set_anyedge (&iopin);
+			break;
+#endif
 		}
 
 	}
 	return rcode;
-#else
-	unimplemented (cmdtp, flag, argc, argv);
-	return 0;
-#endif
 }
 
 int

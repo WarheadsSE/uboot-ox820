@@ -65,7 +65,7 @@ extern int transfer_pic(unsigned char, unsigned char *, int, int);
 #endif
 extern int flash_sect_erase(ulong, ulong);
 extern int flash_sect_protect (int, ulong, ulong);
-extern int flash_write (uchar *, ulong, ulong);
+extern int flash_write (char *, ulong, ulong);
 /* change char* to void* to shutup the compiler */
 extern block_dev_desc_t *get_dev (char*, int);
 
@@ -103,7 +103,7 @@ int au_check_cksum_valid(int i, long nbytes)
 	/* check the data CRC */
 	checksum = ntohl(hdr->ih_dcrc);
 
-	if (crc32 (0, (char *)(LOAD_ADDR + sizeof(*hdr)), ntohl(hdr->ih_size))
+	if (crc32 (0, (uchar *)(LOAD_ADDR + sizeof(*hdr)), ntohl(hdr->ih_size))
 		!= checksum) {
 		printf ("Image %s bad data checksum\n", au_image[i].name);
 		return -1;
@@ -140,7 +140,7 @@ int au_check_header_valid(int i, long nbytes)
 	checksum = ntohl(hdr->ih_hcrc);
 	hdr->ih_hcrc = 0;
 
-	if (crc32 (0, (char *)hdr, sizeof(*hdr)) != checksum) {
+	if (crc32 (0, (uchar *)hdr, sizeof(*hdr)) != checksum) {
 		printf ("Image %s bad header checksum\n", au_image[i].name);
 		return -1;
 	}
@@ -224,6 +224,25 @@ int au_do_update(int i, long sz)
 		start = au_image[i].start;
 		end = au_image[i].start + au_image[i].size - 1;
 
+		/*
+		 * do not update firmware when image is already in flash.
+		 */
+		if (au_image[i].type == AU_FIRMWARE) {
+			char *orig = (char*)start;
+			char *new  = (char *)((char *)hdr + sizeof(*hdr));
+			nbytes = ntohl(hdr->ih_size);
+
+			while(--nbytes) {
+				if (*orig++ != *new++) {
+					break;
+				}
+			}
+			if (!nbytes) {
+				printf("Skipping firmware update - images are identical\n");
+				break;
+			}
+		}
+
 		/* unprotect the address range */
 		/* this assumes that ONLY the firmware is protected! */
 		if (au_image[i].type == AU_FIRMWARE) {
@@ -264,12 +283,12 @@ int au_do_update(int i, long sz)
 		 */
 		if (au_image[i].type != AU_NAND) {
 			debug ("flash_write(%p, %lx %x)\n", addr, start, nbytes);
-			rc = flash_write(addr, start, nbytes);
+			rc = flash_write((uchar *)addr, start, nbytes);
 		} else {
 #if (CONFIG_COMMANDS & CFG_CMD_NAND)
 			debug ("nand_rw(%p, %lx %x)\n", addr, start, nbytes);
 			rc = nand_rw(nand_dev_desc, NANDRW_WRITE | NANDRW_JFFS2,
-				     start, nbytes, &total, addr);
+				     start, nbytes, (size_t *)&total, (uchar *)addr);
 			debug ("nand_rw: ret=%x total=%d nbytes=%d\n", rc, total, nbytes);
 #endif
 		}
@@ -282,12 +301,12 @@ int au_do_update(int i, long sz)
 		 * check the dcrc of the copy
 		 */
 		if (au_image[i].type != AU_NAND) {
-			rc = crc32 (0, (char *)(start + off), ntohl(hdr->ih_size));
+			rc = crc32 (0, (uchar *)(start + off), ntohl(hdr->ih_size));
 		} else {
 #if (CONFIG_COMMANDS & CFG_CMD_NAND)
 			rc = nand_rw(nand_dev_desc, NANDRW_READ | NANDRW_JFFS2 | NANDRW_JFFS2_SKIP,
-				     start, nbytes, &total, addr);
-			rc = crc32 (0, (char *)(addr + off), ntohl(hdr->ih_size));
+				     start, nbytes, (size_t *)&total, (uchar *)addr);
+			rc = crc32 (0, (uchar *)(addr + off), ntohl(hdr->ih_size));
 #endif
 		}
 		if (rc != ntohl(hdr->ih_dcrc)) {

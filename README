@@ -2,6 +2,7 @@ This is the working source for u-boot 1.1.2 for the ox820 systems, used by Arch 
 
 It currently includes NAND, IDE (SATA), and network.
 
+Patches shall be sent to the u-boot-users mailing list.
 
 Compiling locally, and fairly quick.
 

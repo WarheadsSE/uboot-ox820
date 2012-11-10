@@ -32,6 +32,7 @@
  * High Level Configuration Options
  * (easy to change)
  */
+#define CONFIG_IDENT_STRING     " $Name: esd_PCI405_05_07_28 $"
 
 #define CONFIG_405GP		1	/* This is a PPC405 CPU		*/
 #define CONFIG_4xx		1	/* ...member of PPC4xx family	*/
@@ -240,7 +241,7 @@
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		8192	/* For IBM 405 CPUs			*/
+#define CFG_DCACHE_SIZE		8192	/* For AMCC 405 CPUs			*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
 #define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value	*/

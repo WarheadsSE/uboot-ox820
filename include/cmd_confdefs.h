@@ -40,7 +40,7 @@
 						/* crc, base, loop, mtest	*/
 #define CFG_CMD_NET		0x00000080ULL	/* bootp, tftpboot, rarpboot	*/
 #define CFG_CMD_ENV		0x00000100ULL	/* saveenv			*/
-#define CFG_CMD_KGDB		0x00000200ULL	/* kgdb				*/
+#define CFG_CMD_KGDB		0x0000000000000200ULL	/* kgdb				*/
 #define CFG_CMD_PCMCIA		0x00000400ULL	/* PCMCIA support		*/
 #define CFG_CMD_IDE		0x00000800ULL	/* IDE harddisk support		*/
 #define CFG_CMD_PCI		0x00001000ULL	/* pciinfo			*/
@@ -92,8 +92,10 @@
 #define CFG_CMD_XIMG	0x0400000000000000ULL	/* Load part of Multi Image	*/
 #define CFG_CMD_UNIVERSE 0x0800000000000000ULL	/* Tundra Universe Support      */
 #define CFG_CMD_EXT2    0x1000000000000000ULL	/* EXT2 Support                 */
-#define CFG_CMD_LEDFAIL 0x2000000000000000ULL	/* OXNAS Failure LED support */
-#define CFG_CMD_OTP     0x4000000000000000ULL	/* OXNAS Failure LED support */
+#define CFG_CMD_LEDFAIL 0x2000000000000000ULL	/* OXNAS Failure LED support 	*/
+#define CFG_CMD_OTP     0x4000000000000000ULL	/* OXNAS Failure LED support 	*/
+//#define CFG_CMD_SNTP	0x2000000000000000ULL	/* SNTP support			*/
+//#define CFG_CMD_DISPLAY	0x4000000000000000ULL	/* Display support		*/
 
 #define CFG_CMD_ALL	0xFFFFFFFFFFFFFFFFULL	/* ALL commands			*/
 
@@ -109,6 +111,7 @@
 			CFG_CMD_DATE	| \
 			CFG_CMD_DHCP	| \
 			CFG_CMD_DIAG	| \
+			CFG_CMD_DISPLAY	| \
 			CFG_CMD_DOC	| \
 			CFG_CMD_DTT	| \
 			CFG_CMD_ECHO	| \
@@ -138,6 +141,7 @@
 			CFG_CMD_SAVES	| \
 			CFG_CMD_SCSI	| \
 			CFG_CMD_SDRAM	| \
+			CFG_CMD_SNTP	| \
 			CFG_CMD_SPI	| \
 			CFG_CMD_UNIVERSE | \
 			CFG_CMD_USB	| \
@@ -165,6 +169,8 @@
 #define CONFIG_BOOTP_DNS		0x00000040
 #define CONFIG_BOOTP_DNS2		0x00000080
 #define CONFIG_BOOTP_SEND_HOSTNAME	0x00000100
+#define CONFIG_BOOTP_NTPSERVER		0x00000200
+#define CONFIG_BOOTP_TIMEOFFSET		0x00000400
 
 #define CONFIG_BOOTP_VENDOREX		0x80000000
 

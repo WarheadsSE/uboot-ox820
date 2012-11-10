@@ -35,6 +35,7 @@
 
 #define CONFIG_MPC8260		1	/* This is an MPC8260 CPU		*/
 #define CONFIG_ATC		1	/* ...on a ATC board	*/
+#define CONFIG_CPM2		1	/* Has a CPM2 */
 
 /*
  * select serial console configuration
@@ -112,8 +113,8 @@
 #define CONFIG_BOOTCOMMAND						\
 	"bootp;"							\
 	"setenv bootargs root=/dev/nfs rw "				\
-	"nfsroot=$(serverip):$(rootpath) " 				\
-	"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask):$(hostname)::off;"\
+	"nfsroot=${serverip}:${rootpath} " 				\
+	"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off;"\
 	"bootm"
 
 /*-----------------------------------------------------------------------

@@ -56,6 +56,7 @@
 #define CONFIG_QS860T		1	/* ...on a QS860T module */
 
 #define CONFIG_FEC_ENET		1	/* FEC 10/100BaseT ethernet */
+#define CONFIG_MII
 #define FEC_INTERRUPT		SIU_LEVEL1
 #undef CONFIG_SCC1_ENET			/* SCC1 10BaseT ethernet */
 #define CFG_DISCOVER_PHY
@@ -78,8 +79,8 @@
 #undef CONFIG_BOOTARGS
 /* TODO compare against CADM860 */
 #define CONFIG_BOOTCOMMAND	"bootp; " \
-	"setenv bootargs root=/dev/nfs rw nfsroot=$(serverip):$(rootpath) " \
-	"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask):$(hostname)::off; " \
+	"setenv bootargs root=/dev/nfs rw nfsroot=${serverip}:${rootpath} " \
+	"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off; " \
 	"bootm"
 
 #define CONFIG_LOADS_ECHO	1	/* echo on for serial download */

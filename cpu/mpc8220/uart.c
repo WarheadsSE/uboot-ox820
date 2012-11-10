@@ -33,7 +33,7 @@
 #define PSC_BASE   MMAP_PSC1
 
 #if defined(CONFIG_PSC_CONSOLE)
-int psc_serial_init (void)
+int serial_init (void)
 {
 	DECLARE_GLOBAL_DATA_PTR;
 	volatile psc8220_t *psc = (psc8220_t *) PSC_BASE;
@@ -47,8 +47,7 @@ int psc_serial_init (void)
 	/* write to CSR: RX/TX baud rate from timers */
 	psc->sr_csr = 0xdd000000;
 
-	psc->mr1_2 = PSC_MR1_BITS_CHAR_8 | PSC_MR1_NO_PARITY | PSC_MR1_RX_RTS;
-	psc->mr1_2 = PSC_MR2_STOP_BITS_1 | PSC_MR2_TX_CTS;
+	psc->mr1_2 = PSC_MR1_BITS_CHAR_8 | PSC_MR1_NO_PARITY | PSC_MR2_STOP_BITS_1;
 
 	/* Setting up BaudRate */
 	counter = ((gd->bus_clk / gd->baudrate)) >> 5;
@@ -69,7 +68,7 @@ int psc_serial_init (void)
 	return (0);
 }
 
-void psc_serial_putc (const char c)
+void serial_putc (const char c)
 {
 	volatile psc8220_t *psc = (psc8220_t *) PSC_BASE;
 
@@ -77,19 +76,19 @@ void psc_serial_putc (const char c)
 		serial_putc ('\r');
 
 	/* Wait for last character to go. */
-	while (!(psc->sr_csr & PSC_SR_TXEMT));
+	while (!(psc->sr_csr & PSC_SR_TXRDY));
 
 	psc->xmitbuf[0] = c;
 }
 
-void psc_serial_puts (const char *s)
+void serial_puts (const char *s)
 {
 	while (*s) {
 		serial_putc (*s++);
 	}
 }
 
-int psc_serial_getc (void)
+int serial_getc (void)
 {
 	volatile psc8220_t *psc = (psc8220_t *) PSC_BASE;
 
@@ -98,14 +97,14 @@ int psc_serial_getc (void)
 	return psc->xmitbuf[2];
 }
 
-int psc_serial_tstc (void)
+int serial_tstc (void)
 {
 	volatile psc8220_t *psc = (psc8220_t *) PSC_BASE;
 
 	return (psc->sr_csr & PSC_SR_RXRDY);
 }
 
-void psc_serial_setbrg (void)
+void serial_setbrg (void)
 {
 	DECLARE_GLOBAL_DATA_PTR;
 

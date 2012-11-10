@@ -1,4 +1,7 @@
 /*
+ * (C) Copyright 2003-2005
+ * Wolfgang Denk, DENX Software Engineering, <wd@denx.de>
+ *
  * (C) Copyright 2003
  * DAVE Srl
  *
@@ -44,7 +47,7 @@
  * CONFIG_PPCHAMELEON_CLK_33
  */
 #if (!defined(CONFIG_PPCHAMELEON_CLK_25) && !defined(CONFIG_PPCHAMELEON_CLK_33))
-#define CONFIG_PPCHAMELEON_CLK_33
+#define CONFIG_PPCHAMELEON_CLK_25
 #endif
 
 #if (defined(CONFIG_PPCHAMELEON_CLK_25) && defined(CONFIG_PPCHAMELEON_CLK_33))
@@ -103,8 +106,8 @@
 
 #define CONFIG_MII		1	/* MII PHY management		*/
 #ifndef	 CONFIG_EXT_PHY
-#define CONFIG_PHY_ADDR		0	/* EMAC0 PHY address		*/
-#define CONFIG_PHY1_ADDR	1	/* EMAC1 PHY address		*/
+#define CONFIG_PHY_ADDR		1	/* EMAC0 PHY address		*/
+#define CONFIG_PHY1_ADDR	2	/* EMAC1 PHY address		*/
 #else
 #define CONFIG_PHY_ADDR		2	/* PHY address			*/
 #endif
@@ -112,6 +115,7 @@
 
 #define CONFIG_COMMANDS	      ( CONFIG_CMD_DFL	| \
 				CFG_CMD_DATE	| \
+				CFG_CMD_DHCP	| \
 				CFG_CMD_ELF	| \
 				CFG_CMD_EEPROM	| \
 				CFG_CMD_I2C	| \
@@ -119,7 +123,9 @@
 				CFG_CMD_JFFS2	| \
 				CFG_CMD_MII	| \
 				CFG_CMD_NAND	| \
-				CFG_CMD_PCI	)
+				CFG_CMD_NFS	| \
+				CFG_CMD_PCI	| \
+				CFG_CMD_SNTP	)
 
 #define CONFIG_MAC_PARTITION
 #define CONFIG_DOS_PARTITION
@@ -129,8 +135,9 @@
 
 #undef	CONFIG_WATCHDOG			/* watchdog disabled		*/
 
-#define CONFIG_RTC_MC146818		/* DS1685 is MC146818 compatible*/
-#define CFG_RTC_REG_BASE_ADDR	 0xF0000500 /* RTC Base Address		*/
+#define CONFIG_RTC_M41T11	1	/* uses a M41T00 RTC		*/
+#define CFG_I2C_RTC_ADDR	0x68
+#define CFG_M41T11_BASE_YEAR	1900
 
 #define CONFIG_SDRAM_BANK0	1	/* init onboard SDRAM bank 0	*/
 
@@ -329,9 +336,19 @@
  * Please note that CFG_SDRAM_BASE _must_ start at 0
  */
 #define CFG_SDRAM_BASE		0x00000000
+
+/* Reserve 256 kB for Monitor	*/
 #define CFG_FLASH_BASE		0xFFFC0000
 #define CFG_MONITOR_BASE	CFG_FLASH_BASE
-#define CFG_MONITOR_LEN		(256 * 1024)	/* Reserve 256 kB for Monitor	*/
+#define CFG_MONITOR_LEN		(256 * 1024)
+
+/* Reserve 320 kB for Monitor	*/
+/*
+#define CFG_FLASH_BASE		0xFFFB0000
+#define CFG_MONITOR_BASE	CFG_FLASH_BASE
+#define CFG_MONITOR_LEN		(320 * 1024)
+*/
+
 #define CFG_MALLOC_LEN		(256 * 1024)	/* Reserve 256 kB for malloc()	*/
 
 /*
@@ -361,11 +378,6 @@
 #define CFG_FLASH_READ2		0x0002	/* 2 is standard			*/
 
 #define CFG_FLASH_EMPTY_INFO		/* print 'E' for empty sector on flinfo */
-
-#if 0 /* test-only */
-#define CFG_JFFS2_FIRST_BANK	0	 /* use for JFFS2 */
-#define CFG_JFFS2_NUM_BANKS	1	 /* ! second bank contains U-Boot */
-#endif
 
 /*-----------------------------------------------------------------------
  * Environment Variable setup
@@ -410,7 +422,7 @@
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		16384	/* For IBM 405 CPUs, older 405 ppc's	*/
+#define CFG_DCACHE_SIZE		16384	/* For AMCC 405 CPUs, older 405 ppc's	*/
 					/* have only 8kB, 16kB is save here	*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
@@ -763,9 +775,36 @@
 #endif /* CONFIG_NO_SERIAL_EEPROM */
 
 #define CONFIG_JFFS2_NAND 1			/* jffs2 on nand support */
-#define CONFIG_JFFS2_NAND_DEV 0			/* nand device jffs2 lives on */
-#define CONFIG_JFFS2_NAND_OFF 0			/* start of jffs2 partition */
-#define CONFIG_JFFS2_NAND_SIZE 2*1024*1024	/* size of jffs2 partition */
 #define NAND_CACHE_PAGES 16			/* size of nand cache in 512 bytes pages */
+
+/*
+ * JFFS2 partitions
+ */
+
+/* No command line, one static partition */
+#undef CONFIG_JFFS2_CMDLINE
+#define CONFIG_JFFS2_DEV		"nand0"
+#define CONFIG_JFFS2_PART_SIZE		0x00400000
+#define CONFIG_JFFS2_PART_OFFSET	0x00000000
+
+/* mtdparts command line support */
+/*
+#define CONFIG_JFFS2_CMDLINE
+#define MTDIDS_DEFAULT		"nor0=PPChameleon-0,nand0=ppchameleonevb-nand"
+*/
+
+/* 256 kB U-boot image */
+/*
+#define MTDPARTS_DEFAULT	"mtdparts=PPChameleon-0:1m(kernel1),1m(kernel2)," \
+					"1792k(user),256k(u-boot);" \
+				"ppchameleonevb-nand:-(nand)"
+*/
+
+/* 320 kB U-boot image */
+/*
+#define MTDPARTS_DEFAULT	"mtdparts=PPChameleon-0:1m(kernel1),1m(kernel2)," \
+					"1728k(user),320k(u-boot);" \
+				"ppchameleonevb-nand:-(nand)"
+*/
 
 #endif	/* __CONFIG_H */

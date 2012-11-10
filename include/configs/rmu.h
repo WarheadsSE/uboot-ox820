@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2003
+ * (C) Copyright 2003-2005
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -52,8 +52,8 @@
 #undef	CONFIG_BOOTARGS
 #define CONFIG_BOOTCOMMAND							\
 	"bootp; " 								\
-	"setenv bootargs root=/dev/nfs rw nfsroot=$(serverip):$(rootpath) " 	\
-	"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask):$(hostname)::off; " 	\
+	"setenv bootargs root=/dev/nfs rw nfsroot=${serverip}:${rootpath} " 	\
+	"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off; " 	\
 	"bootm"
 
 #define CONFIG_LOADS_ECHO	1	/* echo on for serial download	*/
@@ -90,7 +90,9 @@
 #define CONFIG_COMMANDS	      ( CONFIG_CMD_DFL	| \
 				CFG_CMD_DATE	| \
 				CFG_CMD_DHCP	| \
-				CFG_CMD_I2C	)
+				CFG_CMD_I2C	| \
+				CFG_CMD_NFS	| \
+				CFG_CMD_SNTP	)
 
 #define CONFIG_BOOTP_MASK	(CONFIG_BOOTP_DEFAULT | CONFIG_BOOTP_BOOTFILESIZE)
 

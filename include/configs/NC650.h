@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2004
+ * (C) Copyright 2005
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -71,8 +71,8 @@
 #undef	CONFIG_BOOTARGS
 #define CONFIG_BOOTCOMMAND							\
 	"bootp;" 								\
-	"setenv bootargs root=/dev/nfs rw nfsroot=$(serverip):$(rootpath) " 	\
-	"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask):$(hostname)::off;" 	\
+	"setenv bootargs root=/dev/nfs rw nfsroot=${serverip}:${rootpath} " 	\
+	"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off;" 	\
 	"bootm"
 
 #undef	CONFIG_WATCHDOG			/* watchdog disabled		*/
@@ -99,29 +99,30 @@
 #define SCL		0x1000		/* PA 3 */
 #define SDA		0x2000		/* PA 2 */
 
-#define PAR		immr->im_ioport.iop_papar
-#define DIR		immr->im_ioport.iop_padir
-#define DAT		immr->im_ioport.iop_padat
-
-#define I2C_INIT	{PAR &= ~(SCL | SDA); DIR |=  SCL;}
-#define I2C_ACTIVE	(DIR |=  SDA)
-#define I2C_TRISTATE	(DIR &= ~SDA)
-#define I2C_READ	((DAT & SDA) != 0)
-#define I2C_SDA(bit)	if (bit) DAT |=  SDA; \
-			else DAT &= ~SDA
-#define I2C_SCL(bit)	if (bit) DAT |=  SCL; \
-			else DAT &= ~SCL
-#define I2C_DELAY	udelay(5)	/* 1/4 I2C clock duration */
+#define __I2C_DIR	immr->im_ioport.iop_padir
+#define __I2C_DAT	immr->im_ioport.iop_padat
+#define __I2C_PAR	immr->im_ioport.iop_papar
+#define	I2C_INIT	{ __I2C_PAR &= ~(SDA|SCL);	\
+			  __I2C_DIR |= (SDA|SCL);	}
+#define	I2C_READ	((__I2C_DAT & SDA) ? 1 : 0)
+#define	I2C_SDA(x)	{ if (x) __I2C_DAT |= SDA; else __I2C_DAT &= ~SDA; }
+#define	I2C_SCL(x)	{ if (x) __I2C_DAT |= SCL; else __I2C_DAT &= ~SCL; }
+#define	I2C_DELAY	{ udelay(5); }
+#define	I2C_ACTIVE	{ __I2C_DIR |= SDA; }
+#define	I2C_TRISTATE	{ __I2C_DIR &= ~SDA; }
 
 #define CONFIG_RTC_PCF8563
 #define CFG_I2C_RTC_ADDR		0x51
 
 #define CONFIG_COMMANDS	      ( CONFIG_CMD_DFL	| \
 				CFG_CMD_ASKENV	| \
+				CFG_CMD_DATE	| \
 				CFG_CMD_DHCP	| \
 				CFG_CMD_I2C	| \
 				CFG_CMD_NAND	| \
-				CFG_CMD_DATE	)
+				CFG_CMD_JFFS2	| \
+				CFG_CMD_NFS	| \
+				CFG_CMD_SNTP	)
 
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
 #include <cmd_confdefs.h>
@@ -309,7 +310,7 @@
 #define CFG_BR0_PRELIM	((FLASH_BASE0_PRELIM & BR_BA_MSK) | BR_PS_8 | BR_V)
 
 /*
- * BR2 and OR2 (NAND Flash)
+ * BR2 and OR2 (NAND Flash) - now addressed through UPMB
  */
 #define CFG_NAND_BASE		0x50000000
 #define CFG_NAND_SIZE		0x04000000
@@ -317,8 +318,8 @@
 #define CFG_OR_TIMING_NAND	(OR_CSNT_SAM | OR_ACS_DIV1 | OR_BI | \
 				 OR_SCY_15_CLK | OR_EHTR | OR_TRLX)
 
-#define CFG_BR2_PRELIM  ((CFG_NAND_BASE & BR_BA_MSK) | BR_PS_8 | BR_V )
-#define CFG_OR2_PRELIM  (((-CFG_NAND_SIZE) & OR_AM_MSK) | CFG_OR_TIMING_NAND)
+#define CFG_BR2_PRELIM  ((CFG_NAND_BASE & BR_BA_MSK) | BR_PS_8 | BR_MS_UPMB | BR_V  )
+#define CFG_OR2_PRELIM  (((-CFG_NAND_SIZE) & OR_AM_MSK) | OR_BI )
 
 /*
  * BR3 and OR3 (SDRAM)
@@ -383,6 +384,12 @@
 			 MAMR_RLFA_1X    | MAMR_WLFA_1X    | MAMR_TLFA_4X)
 
 /*
+ * MBMR settings for NAND flash
+ */
+
+#define CFG_MBMR_NAND ( MBMR_WLFB_5X )
+
+/*
  * Internal Definitions
  *
  * Boot Flags
@@ -390,5 +397,28 @@
 #define	BOOTFLAG_COLD	0x01		/* Normal Power-On: Boot from FLASH	*/
 #define BOOTFLAG_WARM	0x02		/* Software reboot			*/
 
+#define CONFIG_JFFS2_NAND 1			/* jffs2 on nand support */
+#define NAND_CACHE_PAGES 16			/* size of nand cache in 512 bytes pages */
+
+/*
+ * JFFS2 partitions
+ */
+
+/* No command line, one static partition */
+#undef CONFIG_JFFS2_CMDLINE
+#define CONFIG_JFFS2_DEV		"nand0"
+#define CONFIG_JFFS2_PART_SIZE		0x00400000
+#define CONFIG_JFFS2_PART_OFFSET	0x00000000
+
+/* mtdparts command line support */
+/*
+#define CONFIG_JFFS2_CMDLINE
+#define MTDIDS_DEFAULT		"nor0=nc650-0,nand0=nc650-nand"
+
+#define MTDPARTS_DEFAULT	"mtdparts=nc650-0:1m(kernel1),1m(kernel2)," \
+					"2560k(cramfs1),2560k(cramfs2)," \
+					"256k(u-boot),256k(env);" \
+				"nc650-nand:4m(nand1),28m(nand2)"
+*/
 
 #endif	/* __CONFIG_H */

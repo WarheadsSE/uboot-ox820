@@ -34,6 +34,7 @@
 /* Input clock running at 30Mhz, read Hid1 for the CPU multiplier to
    determine the CPU speed. */
 #define CFG_MPC8220_CLKIN	30000000/* ... running at 30MHz */
+#define CFG_MPC8220_SYSPLL_VCO_MULTIPLIER 16 /* VCO multiplier can't be read from any register */
 
 #define BOOTFLAG_COLD		0x01	/* Normal Power-On: Boot from FLASH */
 #define BOOTFLAG_WARM		0x02	/* Software reboot	*/
@@ -47,55 +48,49 @@
 /*
  * Serial console configuration
  */
-#define CONFIG_PSC_CONSOLE	1	/* console is on PSC */
+
+/* Define this for PSC console
+#define CONFIG_PSC_CONSOLE	1
+*/
+
 #define CONFIG_EXTUART_CONSOLE	1
 
 #ifdef CONFIG_EXTUART_CONSOLE
+#   define CONFIG_CONS_INDEX	1
+#   define CFG_NS16550_SERIAL
 #   define CFG_NS16550
 #   define CFG_NS16550_REG_SIZE 1
 #   define CFG_NS16550_COM1	(CFG_CPLD_BASE + 0x1008)
+#   define CFG_NS16550_CLK	18432000
 #endif
 
 #define CONFIG_BAUDRATE		115200	    /* ... at 115200 bps */
 
-
 #define CFG_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200, 230400 }
+
+#define CONFIG_TIMESTAMP			/* Print image info with timestamp */
 
 /*
  * Supported commands
  */
-/* CONFIG_CMD_DFL includes CFG_CMD_BDI (bdinfo), CFG_CMD_LOADS (loads),
-   CFG_CMD_LOADB (loadb), CFG_CMD_IMI (iminfo), CFG_CMD_FLASH
-   (flinfo, erase, protect), CFG_CMD_MEMORY (md, mm, nm, mw, cp, cmp,
-   crc, base, loop, mtest), CFG_CMD_ENV (printenv, setenv, saveenv),
-   CFG_CMD_BOOTD (bootd), CFG_CMD_CONSOLE (coninfo), CFG_CMD_NET (bootp,
-   tftpboot, rarpboot), CFG_CMD_RUN, CFG_CMD_MISC (sleep, etc),
-   CFG_CMD_BSP, CFG_CMD_IMLS, CFG_CMD_FPGA */
+#define CONFIG_COMMANDS	      ( CONFIG_CMD_DFL	| \
+				CFG_CMD_BOOTD	| \
+				CFG_CMD_CACHE	| \
+				CFG_CMD_DHCP	| \
+				CFG_CMD_DIAG	| \
+				CFG_CMD_EEPROM	| \
+				CFG_CMD_ELF	| \
+				CFG_CMD_I2C	| \
+				CFG_CMD_NET	| \
+				CFG_CMD_NFS	| \
+				CFG_CMD_PCI	| \
+				CFG_CMD_PING	| \
+				CFG_CMD_REGINFO | \
+				CFG_CMD_SDRAM	| \
+				CFG_CMD_SNTP	)
 
-#define CONFIG_COMMANDS	    (CONFIG_CMD_DFL  | \
-			     CFG_CMD_BOOTD   | \
-			     CFG_CMD_CACHE   | \
-			     CFG_CMD_DIAG    | \
-			     CFG_CMD_EEPROM  | \
-			     CFG_CMD_ELF     | \
-			     CFG_CMD_I2C     | \
-			     CFG_CMD_NET     | \
-			     CFG_CMD_PING    | \
-			     CFG_CMD_REGINFO | \
-			     CFG_CMD_SDRAM     \
-			     )
-/*			       CFG_CMD_DHCP    | \ */
-/*			       CFG_CMD_MII     | \ */
-/*			       CFG_CMD_PCI     | \ */
-/*			       CFG_CMD_USB */
-
-#   define CONFIG_NET_MULTI
-/*#if (CONFIG_COMMANDS & CFG_CMD_NET)
-#   define CONFIG_NET_MULTI
-#else
-#   undef CONFIG_NET_MULTI
-#endif*/
-
+#define CONFIG_NET_MULTI
+#define CONFIG_MII
 
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
 #include <cmd_confdefs.h>
@@ -235,17 +230,6 @@
 #undef CFG_ENV_IS_IN_FLASH
 #endif
 
-#ifndef CFG_JFFS2_FIRST_SECTOR
-#define CFG_JFFS2_FIRST_SECTOR	0
-#endif
-#ifndef CFG_JFFS2_FIRST_BANK
-#define CFG_JFFS2_FIRST_BANK	0
-#endif
-#ifndef CFG_JFFS2_NUM_BANKS
-#define CFG_JFFS2_NUM_BANKS	1
-#endif
-#define CFG_JFFS2_LAST_BANK (CFG_JFFS2_FIRST_BANK + CFG_JFFS2_NUM_BANKS - 1)
-
 /*
  * Memory map
  */
@@ -271,6 +255,19 @@
 #define CFG_MONITOR_LEN		(256 << 10) /* Reserve 256 kB for Monitor   */
 #define CFG_MALLOC_LEN		(128 << 10) /* Reserve 128 kB for malloc()  */
 #define CFG_BOOTMAPSZ		(8 << 20)   /* Initial Memory map for Linux */
+
+/* SDRAM configuration */
+#define CFG_SDRAM_TOTAL_BANKS		2
+#define CFG_SDRAM_SPD_I2C_ADDR		0x51		/* 7bit */
+#define CFG_SDRAM_SPD_SIZE		0x40
+#define CFG_SDRAM_CAS_LATENCY		4		/* (CL=2)x2 */
+
+/* SDRAM drive strength register */
+#define CFG_SDRAM_DRIVE_STRENGTH	((DRIVE_STRENGTH_LOW  << SDRAMDS_SBE_SHIFT) | \
+					 (DRIVE_STRENGTH_HIGH << SDRAMDS_SBC_SHIFT) | \
+					 (DRIVE_STRENGTH_LOW  << SDRAMDS_SBA_SHIFT) | \
+					 (DRIVE_STRENGTH_OFF  << SDRAMDS_SBS_SHIFT) | \
+					 (DRIVE_STRENGTH_LOW  << SDRAMDS_SBD_SHIFT))
 
 /*
  * Ethernet configuration
@@ -306,5 +303,24 @@
  */
 #define CFG_HID0_INIT		HID0_ICE | HID0_ICFI
 #define CFG_HID0_FINAL		HID0_ICE
+
+/*
+ * JFFS2 partitions
+ */
+
+/* No command line, one static partition */
+/*
+#undef CONFIG_JFFS2_CMDLINE
+#define CONFIG_JFFS2_DEV		"nor0"
+#define CONFIG_JFFS2_PART_SIZE		0x00400000
+#define CONFIG_JFFS2_PART_OFFSET	0x00000000
+*/
+
+/* mtdparts command line support */
+/*
+#define CONFIG_JFFS2_CMDLINE
+#define MTDIDS_DEFAULT		"nor0=alaska-0"
+#define MTDPARTS_DEFAULT	"mtdparts=alaska-0:4m(user)"
+*/
 
 #endif /* __CONFIG_H */

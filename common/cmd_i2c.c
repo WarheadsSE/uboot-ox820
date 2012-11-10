@@ -295,7 +295,13 @@ int do_i2c_mw ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		 * chip doesn't respond.  This apparently isn't a
 		 * universal feature so we don't take advantage of it.
 		 */
+/*
+ * No write delay with FRAM devices.
+ */
+#if !defined(CFG_I2C_FRAM)
 		udelay(11000);
+#endif
+
 #if 0
 		for(timeout = 0; timeout < 10; timeout++) {
 			udelay(2000);
@@ -455,7 +461,7 @@ mod_i2c_mem(cmd_tbl_t *cmdtp, int incrflag, int flag, int argc, char *argv[])
 	 */
 	do {
 		printf("%08lx:", addr);
-		if(i2c_read(chip, addr, alen, (char *)&data, size) != 0) {
+		if(i2c_read(chip, addr, alen, (uchar *)&data, size) != 0) {
 			puts ("\nError reading the chip,\n");
 		} else {
 			data = cpu_to_be32(data);
@@ -504,7 +510,7 @@ mod_i2c_mem(cmd_tbl_t *cmdtp, int incrflag, int flag, int argc, char *argv[])
 				 */
 				reset_cmd_timeout();
 #endif
-				if(i2c_write(chip, addr, alen, (char *)&data, size) != 0) {
+				if(i2c_write(chip, addr, alen, (uchar *)&data, size) != 0) {
 					puts ("Error writing the chip.\n");
 				}
 #ifdef CFG_EEPROM_PAGE_WRITE_DELAY_MS

@@ -57,7 +57,7 @@ int cleanup_before_linux (void)
 	 * and we set the CPU-speed to 73 MHz - see start.S for details
 	 */
 
-#if defined(CONFIG_IMPA7) || defined(CONFIG_EP7312)
+#if defined(CONFIG_IMPA7) || defined(CONFIG_EP7312) || defined(CONFIG_ARMADILLO)
 	unsigned long i;
 
 	disable_interrupts ();
@@ -76,6 +76,8 @@ int cleanup_before_linux (void)
 #elif defined(CONFIG_NETARM) || defined(CONFIG_S3C4510B)
 	disable_interrupts ();
 	/* Nothing more needed */
+#elif defined(CONFIG_INTEGRATOR) && defined(CONFIG_ARCH_INTEGRATOR)
+	/* No cleanup before linux for IntegratorAP/CM720T as yet */
 #else
 #error No cleanup_before_linux() defined for this CPU type
 #endif
@@ -84,8 +86,6 @@ int cleanup_before_linux (void)
 
 int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-	extern void reset_cpu (ulong addr);
-
 	disable_interrupts ();
 	reset_cpu (0);
 	/*NOTREACHED*/
@@ -97,7 +97,7 @@ int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
  *
  */
 
-#if defined(CONFIG_IMPA7) || defined(CONFIG_EP7312) || defined(CONFIG_NETARM)
+#if defined(CONFIG_IMPA7) || defined(CONFIG_EP7312) || defined(CONFIG_NETARM) || defined(CONFIG_ARMADILLO)
 /* read co-processor 15, register #1 (control register) */
 static unsigned long read_p15_c1(void)
 {
@@ -247,6 +247,11 @@ int dcache_status (void)
 	return icache_status();
 }
 
+#elif defined(CONFIG_INTEGRATOR) && defined(CONFIG_ARCH_INTEGRATOR)
+	/* No specific cache setup for IntegratorAP/CM720T as yet */
+	void icache_enable (void)
+	{
+	}
 #else
 #error No icache/dcache enable/disable functions defined for this CPU type
 #endif

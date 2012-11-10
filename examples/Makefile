@@ -66,6 +66,11 @@ BIN    += mem_test.bin mem_test
 endif
 endif
 
+ifeq ($(CPU),mpc8xx)
+SREC	= test_burst.srec
+BIN	= test_burst.bin test_burst
+endif
+
 ifeq ($(ARCH),i386)
 SREC   += 82559_eeprom.srec
 BIN    += 82559_eeprom.bin 82559_eeprom
@@ -105,6 +110,9 @@ LIBAOBJS=
 ifeq ($(ARCH),ppc)
 LIBAOBJS+= $(ARCH)_longjmp.o $(ARCH)_setjmp.o
 endif
+ifeq ($(CPU),mpc8xx)
+LIBAOBJS+= test_burst_lib.o
+endif
 LIBCOBJS= stubs.o
 LIBOBJS	= $(LIBAOBJS) $(LIBCOBJS)
 
@@ -113,7 +121,7 @@ clibdir := $(shell dirname `$(CC) $(CFLAGS) -print-file-name=libc.a`)
 
 CPPFLAGS += -I..
 
-all:	.depend $(LIB) $(SREC) $(BIN)
+all:	.depend $(OBJS) $(LIB) $(SREC) $(BIN)
 
 #########################################################################
 $(LIB): .depend $(LIBOBJS)

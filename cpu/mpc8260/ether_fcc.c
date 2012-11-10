@@ -47,6 +47,10 @@
 #include <config.h>
 #include <net.h>
 
+#if defined(CONFIG_MII) || (CONFIG_COMMANDS & CFG_CMD_MII)
+#include <miiphy.h>
+#endif
+
 #if defined(CONFIG_ETHER_ON_FCC) && (CONFIG_COMMANDS & CFG_CMD_NET) && \
 	defined(CONFIG_NET_MULTI)
 
@@ -386,6 +390,12 @@ int fec_initialize(bd_t *bis)
 		dev->recv   = fec_recv;
 
 		eth_register(dev);
+
+#if (defined(CONFIG_MII) || (CONFIG_COMMANDS & CFG_CMD_MII)) \
+		&& defined(CONFIG_BITBANGMII)
+		miiphy_register(dev->name,
+				bb_miiphy_read,	bb_miiphy_write);
+#endif
 	}
 
 	return 1;
@@ -627,6 +637,9 @@ swap16 (unsigned short x)
 {
 	return (((x & 0xff) << 8) | ((x & 0xff00) >> 8));
 }
+
+/* broadcast is not an error - we send them like that */
+#define BD_ENET_RX_ERRS	(BD_ENET_RX_STATS & ~BD_ENET_RX_BC)
 
 void
 eth_loopback_test (void)
@@ -1002,7 +1015,7 @@ eth_loopback_test (void)
 							ecp->rxeacc._f++;
 					}
 
-					if (sc & BD_ENET_RX_STATS) {
+					if (sc & BD_ENET_RX_ERRS) {
 						ulong n;
 
 						/*
@@ -1033,7 +1046,7 @@ eth_loopback_test (void)
 							ecp->rxeacc.cl++;
 
 						bdp->cbd_sc &= \
-							~BD_ENET_RX_STATS;
+							~BD_ENET_RX_ERRS;
 					}
 					else {
 						ushort datlen = bdp->cbd_datlen;

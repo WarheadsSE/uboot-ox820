@@ -185,7 +185,7 @@ int misc_init_r (void)
 
 int checkboard (void)
 {
-	unsigned char str[64];
+	char str[64];
 	int i = getenv_r ("serial#", str, sizeof(str));
 
 	puts ("Board: ");
@@ -261,7 +261,7 @@ nand_init(void)
 	debug ("Probing at 0x%.8x\n", CFG_NAND1_BASE);
 	totlen += nand_probe (CFG_NAND1_BASE);
 
-	printf ("%4lu MB\n", totlen >>20);
+	printf ("%3lu MB\n", totlen >>20);
 }
 #endif
 
@@ -279,10 +279,10 @@ void video_get_info_str (int line_number, char *info)
 	case 1:
 		switch (pvr) {
 		case PVR_405EP_RB:
-			sprintf (info, " IBM PowerPC 405EP Rev. B");
+			sprintf (info, " AMCC PowerPC 405EP Rev. B");
 			break;
 		default:
-			sprintf (info, " IBM PowerPC 405EP Rev. <unknown>");
+			sprintf (info, " AMCC PowerPC 405EP Rev. <unknown>");
 			break;
 		}
 		return;

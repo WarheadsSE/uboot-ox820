@@ -54,12 +54,12 @@ static struct irq_action irq_vecs1[32]; /* For UIC1 */
 
 void uic1_interrupt( void * parms); /* UIC1 handler */
 
-#if defined(CONFIG_440_GX)
+#if defined(CONFIG_440GX)
 static struct irq_action irq_vecs2[32]; /* For UIC2 */
 
 void uic0_interrupt( void * parms); /* UIC0 handler */
 void uic2_interrupt( void * parms); /* UIC2 handler */
-#endif /* CONFIG_440_GX */
+#endif /* CONFIG_440GX */
 
 #endif /* CONFIG_440 */
 
@@ -115,11 +115,11 @@ int interrupt_init_cpu (unsigned *decrementer_count)
 		irq_vecs1[vec].handler = NULL;
 		irq_vecs1[vec].arg = NULL;
 		irq_vecs1[vec].count = 0;
-#if defined(CONFIG_440_GX)
+#if defined(CONFIG_440GX)
 		irq_vecs2[vec].handler = NULL;
 		irq_vecs2[vec].arg = NULL;
 		irq_vecs2[vec].count = 0;
-#endif /* CONFIG_440_GX */
+#endif /* CONFIG_440GX */
 #endif
 	}
 
@@ -134,7 +134,7 @@ int interrupt_init_cpu (unsigned *decrementer_count)
 	mtspr( dec, 0 );		/* Prevent exception after TSR clear*/
 	mtspr( decar, 0 );		/* clear reload */
 	mtspr( tsr, 0x08000000 );	/* clear DEC status */
-	val = gd->bd->bi_intfreq/100;	/* 10 msec */
+	val = gd->bd->bi_intfreq/1000;	/* 1 msec */
 	mtspr( decar, val );		/* Set auto-reload value */
 	mtspr( dec, val );		/* Set inital val */
 #else
@@ -162,14 +162,14 @@ int interrupt_init_cpu (unsigned *decrementer_count)
 	set_evpr(0x00000000);
 
 #if defined(CONFIG_440)
-#if !defined(CONFIG_440_GX)
+#if !defined(CONFIG_440GX)
 	/* Install the UIC1 handlers */
 	irq_install_handler(VECNUM_UIC1NC, uic1_interrupt, 0);
 	irq_install_handler(VECNUM_UIC1C, uic1_interrupt, 0);
 #endif
 #endif
 
-#if defined(CONFIG_440_GX)
+#if defined(CONFIG_440GX)
 	/* Take the GX out of compatibility mode
 	 * Travis Sawyer, 9 Mar 2004
 	 * NOTE: 440gx user manual inconsistency here
@@ -195,7 +195,7 @@ int interrupt_init_cpu (unsigned *decrementer_count)
 /*
  * Handle external interrupts
  */
-#if defined(CONFIG_440_GX)
+#if defined(CONFIG_440GX)
 void external_interrupt(struct pt_regs *regs)
 {
 	ulong uic_msr;
@@ -219,7 +219,7 @@ void external_interrupt(struct pt_regs *regs)
 
 	return;
 
-} /* external_interrupt CONFIG_440_GX */
+} /* external_interrupt CONFIG_440GX */
 
 #else
 
@@ -266,7 +266,7 @@ void external_interrupt(struct pt_regs *regs)
 }
 #endif
 
-#if defined(CONFIG_440_GX)
+#if defined(CONFIG_440GX)
 /* Handler for UIC0 interrupt */
 void uic0_interrupt( void * parms)
 {
@@ -310,7 +310,7 @@ void uic0_interrupt( void * parms)
 	}
 }
 
-#endif /* CONFIG_440_GX */
+#endif /* CONFIG_440GX */
 
 #if defined(CONFIG_440)
 /* Handler for UIC1 interrupt */
@@ -357,7 +357,7 @@ void uic1_interrupt( void * parms)
 }
 #endif /* defined(CONFIG_440) */
 
-#if defined(CONFIG_440_GX)
+#if defined(CONFIG_440GX)
 /* Handler for UIC1 interrupt */
 void uic2_interrupt( void * parms)
 {
@@ -400,7 +400,7 @@ void uic2_interrupt( void * parms)
 		vec++;
 	}
 }
-#endif /* defined(CONFIG_440_GX) */
+#endif /* defined(CONFIG_440GX) */
 
 /****************************************************************************/
 
@@ -414,7 +414,7 @@ void irq_install_handler (int vec, interrupt_handler_t * handler, void *arg)
 	int i = vec;
 
 #if defined(CONFIG_440)
-#if defined(CONFIG_440_GX)
+#if defined(CONFIG_440GX)
 	if ((vec > 31) && (vec < 64)) {
 		i = vec - 32;
 		irqa = irq_vecs1;
@@ -422,15 +422,18 @@ void irq_install_handler (int vec, interrupt_handler_t * handler, void *arg)
 		i = vec - 64;
 		irqa = irq_vecs2;
 	}
-#else  /* CONFIG_440_GX */
+#else  /* CONFIG_440GX */
 	if (vec > 31) {
 		i = vec - 32;
 		irqa = irq_vecs1;
 	}
-#endif /* CONFIG_440_GX */
+#endif /* CONFIG_440GX */
 #endif /* CONFIG_440 */
 
-	if (irqa[i].handler != NULL) {
+	/*
+	 * print warning when replacing with a different irq vector
+	 */
+	if ((irqa[i].handler != NULL) && (irqa[i].handler != handler)) {
 		printf ("Interrupt vector %d: handler 0x%x replacing 0x%x\n",
 			vec, (uint) handler, (uint) irqa[i].handler);
 	}
@@ -438,13 +441,13 @@ void irq_install_handler (int vec, interrupt_handler_t * handler, void *arg)
 	irqa[i].arg = arg;
 
 #if defined(CONFIG_440)
-#if defined(CONFIG_440_GX)
+#if defined(CONFIG_440GX)
 	if ((vec > 31) && (vec < 64))
 		mtdcr (uic1er, mfdcr (uic1er) | (0x80000000 >> i));
 	else if (vec > 63)
 		mtdcr (uic2er, mfdcr (uic2er) | (0x80000000 >> i));
 	else
-#endif /* CONFIG_440_GX */
+#endif /* CONFIG_440GX */
 	if (vec > 31)
 		mtdcr (uic1er, mfdcr (uic1er) | (0x80000000 >> i));
 	else
@@ -461,7 +464,7 @@ void irq_free_handler (int vec)
 	int i = vec;
 
 #if defined(CONFIG_440)
-#if defined(CONFIG_440_GX)
+#if defined(CONFIG_440GX)
 	if ((vec > 31) && (vec < 64)) {
 		irqa = irq_vecs1;
 		i = vec - 32;
@@ -469,7 +472,7 @@ void irq_free_handler (int vec)
 		irqa = irq_vecs2;
 		i = vec - 64;
 	}
-#endif /* CONFIG_440_GX */
+#endif /* CONFIG_440GX */
 	if (vec > 31) {
 		irqa = irq_vecs1;
 		i = vec - 32;
@@ -482,13 +485,13 @@ void irq_free_handler (int vec)
 #endif
 
 #if defined(CONFIG_440)
-#if defined(CONFIG_440_GX)
+#if defined(CONFIG_440GX)
 	if ((vec > 31) && (vec < 64))
 		mtdcr (uic1er, mfdcr (uic1er) & ~(0x80000000 >> i));
 	else if (vec > 63)
 		mtdcr (uic2er, mfdcr (uic2er) & ~(0x80000000 >> i));
 	else
-#endif /* CONFIG_440_GX */
+#endif /* CONFIG_440GX */
 	if (vec > 31)
 		mtdcr (uic1er, mfdcr (uic1er) & ~(0x80000000 >> i));
 	else
@@ -550,7 +553,7 @@ do_irqinfo(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	printf("\n");
 #endif
 
-#if defined(CONFIG_440_GX)
+#if defined(CONFIG_440GX)
 	printf ("\nUIC 2\n");
 	printf ("Nr  Routine   Arg       Count\n");
 

@@ -38,33 +38,16 @@ int checkcpu (void)
 	uint lcrr;		/* local bus clock ratio register */
 	uint clkdiv;		/* clock divider portion of lcrr */
 	uint pvr, svr;
+	uint fam;
 	uint ver;
 	uint major, minor;
-
-	puts("Freescale PowerPC\n");
-
-	pvr = get_pvr();
-	ver = PVR_VER(pvr);
-	major = PVR_MAJ(pvr);
-	minor = PVR_MIN(pvr);
-
-	printf("    Core: ");
-	switch (ver) {
-	case PVR_VER(PVR_85xx):
-	    puts("E500");
-	    break;
-	default:
-	    puts("Unknown");
-	    break;
-	}
-	printf(", Version: %d.%d, (0x%08x)\n", major, minor, pvr);
 
 	svr = get_svr();
 	ver = SVR_VER(svr);
 	major = SVR_MAJ(svr);
 	minor = SVR_MIN(svr);
 
-	puts("    System: ");
+	puts("CPU:   ");
 	switch (ver) {
 	case SVR_8540:
 		puts("8540");
@@ -78,18 +61,41 @@ int checkcpu (void)
 	case SVR_8560:
 		puts("8560");
 		break;
+	case SVR_8548:
+		puts("8548");
+		break;
+	case SVR_8548_E:
+		puts("8548_E");
+		break;
 	default:
 		puts("Unknown");
 		break;
 	}
 	printf(", Version: %d.%d, (0x%08x)\n", major, minor, svr);
 
+	pvr = get_pvr();
+	fam = PVR_FAM(pvr);
+	ver = PVR_VER(pvr);
+	major = PVR_MAJ(pvr);
+	minor = PVR_MIN(pvr);
+
+	printf("Core:  ");
+	switch (fam) {
+	case PVR_FAM(PVR_85xx):
+	    puts("E500");
+	    break;
+	default:
+	    puts("Unknown");
+	    break;
+	}
+	printf(", Version: %d.%d, (0x%08x)\n", major, minor, pvr);
+
 	get_sys_info(&sysinfo);
 
-	puts("    Clocks: ");
-	printf("CPU:%4lu MHz, ", sysinfo.freqProcessor / 1000000);
-	printf("CCB:%4lu MHz, ", sysinfo.freqSystemBus / 1000000);
-	printf("DDR:%4lu MHz, ", sysinfo.freqSystemBus / 2000000);
+	puts("Clock Configuration:\n");
+	printf("       CPU:%4lu MHz, ", sysinfo.freqProcessor / 1000000);
+	printf("CCB:%4lu MHz,\n", sysinfo.freqSystemBus / 1000000);
+	printf("       DDR:%4lu MHz, ", sysinfo.freqSystemBus / 2000000);
 
 #if defined(CFG_LBC_LCRR)
 	lcrr = CFG_LBC_LCRR;
@@ -103,18 +109,25 @@ int checkcpu (void)
 #endif
 	clkdiv = lcrr & 0x0f;
 	if (clkdiv == 2 || clkdiv == 4 || clkdiv == 8) {
+#ifdef CONFIG_MPC8548
+		/*
+		 * Yes, the entire PQ38 family use the same
+		 * bit-representation for twice the clock divider values.
+		 */
+		 clkdiv *= 2;
+#endif
 		printf("LBC:%4lu MHz\n",
 		       sysinfo.freqSystemBus / 1000000 / clkdiv);
 	} else {
-		printf("    LBC: unknown (lcrr: 0x%08x)\n", lcrr);
+		printf("LBC: unknown (lcrr: 0x%08x)\n", lcrr);
 	}
 
 	if (ver == SVR_8560) {
-		printf("    CPM: %lu Mhz\n",
+		printf("CPM:  %lu Mhz\n",
 		       sysinfo.freqSystemBus / 1000000);
 	}
 
-	puts("    L1 D-cache 32KB, L1 I-cache 32KB enabled.\n");
+	puts("L1:    D-cache 32 kB enabled\n       I-cache 32 kB enabled\n");
 
 	return 0;
 }
@@ -147,7 +160,7 @@ unsigned long get_tbclk (void)
 	sys_info_t  sys_info;
 
 	get_sys_info(&sys_info);
-	return ((sys_info.freqSystemBus + 3L) / 4L);
+	return ((sys_info.freqSystemBus + 7L) / 8L);
 }
 
 

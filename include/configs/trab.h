@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2002-2003
+ * (C) Copyright 2002-2005
  * Gary Jennejohn <gj@denx.de>
  *
  * Configuation settings for the TRAB board.
@@ -35,12 +35,6 @@
 #if (!defined(CONFIG_RAM_16MB)) && (!defined(CONFIG_RAM_32MB))
 # define CONFIG_RAM_32MB	/* 32 MB SDRAM	*/
 #endif
-
-/*
- * If we are developing, we might want to start armboot from ram
- * so we MUST NOT initialize critical regs like mem-timing ...
- */
-#define CONFIG_INIT_CRITICAL		/* undef for developing */
 
 /*
  * High Level Configuration Options
@@ -157,25 +151,33 @@
 #endif
 
 #ifndef USE_920T_MMU
-#define CONFIG_COMMANDS		((CONFIG_CMD_DFL & ~CFG_CMD_CACHE) | \
-				 CFG_CMD_BSP			| \
-				 CFG_CMD_DATE			| \
-				 CONFIG_COMMANDS_ADD_HWFLOW	| \
-				 CONFIG_COMMANDS_ADD_VFD	| \
-				 CONFIG_COMMANDS_ADD_EEPROM	| \
-				 CFG_CMD_USB			| \
-				 CFG_CMD_FAT			| \
-				 CONFIG_COMMANDS_I2C		)
+#define CONFIG_COMMANDS	       ((CONFIG_CMD_DFL & ~CFG_CMD_CACHE) | \
+				CONFIG_COMMANDS_ADD_HWFLOW	| \
+				CONFIG_COMMANDS_ADD_VFD		| \
+				CONFIG_COMMANDS_ADD_EEPROM	| \
+				CONFIG_COMMANDS_I2C		| \
+				CFG_CMD_BSP			| \
+				CFG_CMD_DATE			| \
+				CFG_CMD_DHCP			| \
+				CFG_CMD_FAT			| \
+				CFG_CMD_JFFS2			| \
+				CFG_CMD_NFS			| \
+				CFG_CMD_SNTP			| \
+				CFG_CMD_USB	)
 #else
-#define CONFIG_COMMANDS		(CONFIG_CMD_DFL			| \
-				 CFG_CMD_BSP			| \
-				 CFG_CMD_DATE			| \
-				 CONFIG_COMMANDS_ADD_HWFLOW	| \
-				 CONFIG_COMMANDS_ADD_VFD	| \
-				 CONFIG_COMMANDS_ADD_EEPROM	| \
-				 CFG_CMD_USB			| \
-				 CFG_CMD_FAT			| \
-				 CONFIG_COMMANDS_I2C		)
+#define CONFIG_COMMANDS	       (CONFIG_CMD_DFL			| \
+				CONFIG_COMMANDS_ADD_HWFLOW	| \
+				CONFIG_COMMANDS_ADD_VFD		| \
+				CONFIG_COMMANDS_ADD_EEPROM	| \
+				CONFIG_COMMANDS_I2C		| \
+				CFG_CMD_BSP			| \
+				CFG_CMD_DATE			| \
+				CFG_CMD_DHCP			| \
+				CFG_CMD_FAT			| \
+				CFG_CMD_JFFS2			| \
+				CFG_CMD_NFS			| \
+				CFG_CMD_SNTP			| \
+				CFG_CMD_USB	)
 #endif
 
 /* moved up */
@@ -220,22 +222,22 @@
 #else /* !CFG_HUSH_PARSER */
 #define	CONFIG_EXTRA_ENV_SETTINGS	\
 	"nfs_args=setenv bootargs root=/dev/nfs rw " \
-		"nfsroot=$(serverip):$(rootpath)\0" \
+		"nfsroot=${serverip}:${rootpath}\0" \
 	"rootpath=/opt/eldk/arm_920TDI\0" \
 	"ram_args=setenv bootargs root=/dev/ram rw\0" \
-	"add_net=setenv bootargs $(bootargs) ethaddr=$(ethaddr) " \
-		"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask):$(hostname)::off\0" \
-	"add_misc=setenv bootargs $(bootargs) console=ttyS0 panic=1\0" \
+	"add_net=setenv bootargs ${bootargs} ethaddr=${ethaddr} " \
+		"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off\0" \
+	"add_misc=setenv bootargs ${bootargs} console=ttyS0 panic=1\0" \
 	"u-boot=/tftpboot/TRAB/u-boot.bin\0" \
-	"load=tftp C100000 $(u-boot)\0" \
+	"load=tftp C100000 ${u-boot}\0" \
 	"update=protect off 0 5FFFF;era 0 5FFFF;" \
-		"cp.b C100000 0 $(filesize)\0" \
+		"cp.b C100000 0 ${filesize}\0" \
 	"loadfile=/tftpboot/TRAB/uImage\0" \
 	"loadaddr=c400000\0" \
-	"net_load=tftpboot $(loadaddr) $(loadfile)\0" \
+	"net_load=tftpboot ${loadaddr} ${loadfile}\0" \
 	"net_nfs=run net_load nfs_args add_net add_misc;bootm\0" \
 	"kernel_addr=000C0000\0" \
-	"flash_nfs=run nfs_args add_net add_misc;bootm $(kernel_addr)\0" \
+	"flash_nfs=run nfs_args add_net add_misc;bootm ${kernel_addr}\0" \
 	"mdm_init1=ATZ\0" \
 	"mdm_init2=ATS0=1\0" \
 	"mdm_flow_control=rts/cts\0"
@@ -267,33 +269,33 @@
 #else /* !CFG_HUSH_PARSER */
 #define	CONFIG_EXTRA_ENV_SETTINGS	\
 	"nfs_args=setenv bootargs root=/dev/nfs rw " \
-		"nfsroot=$(serverip):$(rootpath)\0" \
+		"nfsroot=${serverip}:${rootpath}\0" \
 	"rootpath=/opt/eldk/arm_920TDI\0" \
 	"ram_args=setenv bootargs root=/dev/ram rw\0" \
-	"add_net=setenv bootargs $(bootargs) ethaddr=$(ethaddr) " \
-		"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask):$(hostname)::off\0" \
-	"add_misc=setenv bootargs $(bootargs) console=ttyS0 panic=1\0" \
+	"add_net=setenv bootargs ${bootargs} ethaddr=${ethaddr} " \
+		"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off\0" \
+	"add_misc=setenv bootargs ${bootargs} console=ttyS0 panic=1\0" \
 	"u-boot=/tftpboot/TRAB/u-boot.bin\0" \
-	"load=tftp C100000 $(u-boot)\0" \
+	"load=tftp C100000 ${u-boot}\0" \
 	"update=protect off 0 3FFFF;era 0 3FFFF;" \
-		"cp.b C100000 0 $(filesize);" \
+		"cp.b C100000 0 ${filesize};" \
 		"setenv filesize;saveenv\0" \
 	"loadfile=/tftpboot/TRAB/uImage\0" \
 	"loadaddr=C400000\0" \
-	"net_load=tftpboot $(loadaddr) $(loadfile)\0" \
+	"net_load=tftpboot ${loadaddr} ${loadfile}\0" \
 	"net_nfs=run net_load nfs_args add_net add_misc;bootm\0" \
 	"kernel_addr=000C0000\0" \
-	"flash_nfs=run nfs_args add_net add_misc;bootm $(kernel_addr)\0" \
+	"flash_nfs=run nfs_args add_net add_misc;bootm ${kernel_addr}\0" \
 	"mdm_init1=ATZ\0" \
 	"mdm_init2=ATS0=1\0" \
 	"mdm_flow_control=rts/cts\0"
 #endif /* CFG_HUSH_PARSER */
 #endif	/* CONFIG_FLASH_8MB */
 
-#if 0	/* disabled for development */
+#if 1	/* feel free to disable for development */
 #define	CONFIG_AUTOBOOT_KEYED		/* Enable password protection	*/
 #define CONFIG_AUTOBOOT_PROMPT	"\nEnter password - autoboot in %d sec...\n"
-#define CONFIG_AUTOBOOT_DELAY_STR	"system"	/* 1st password	*/
+#define CONFIG_AUTOBOOT_DELAY_STR	"R"	/* 1st "password"	*/
 #endif
 
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
@@ -377,6 +379,20 @@
 #define	CFG_MONITOR_BASE	CFG_FLASH_BASE
 #define	CFG_MONITOR_LEN		(256 << 10)
 
+/* Dynamic MTD partition support */
+#define CONFIG_JFFS2_CMDLINE
+#define MTDIDS_DEFAULT		"nor0=0"
+
+/* production flash layout */
+#define MTDPARTS_DEFAULT	"mtdparts=0:32k(Firmware1)ro,"		\
+						"16k(Env1),"		\
+						"16k(Env2),"		\
+						"320k(Firmware2)ro,"	\
+						"896k(Kernel),"		\
+						"5376k(Root-FS),"	\
+						"1408k(JFFS2),"		\
+						"-(VFD)"
+
 /*-----------------------------------------------------------------------
  * FLASH and environment organization
  */
@@ -399,7 +415,7 @@
 #define CFG_ENV_SIZE		0x4000
 #define CFG_ENV_SECT_SIZE	0x20000
 #else
-#define CFG_ENV_ADDR		(CFG_FLASH_BASE + 0x8000)
+#define CFG_ENV_ADDR		(CFG_FLASH_BASE + 0x4000)
 #define CFG_ENV_SIZE		0x4000
 #define CFG_ENV_SECT_SIZE	0x4000
 #endif

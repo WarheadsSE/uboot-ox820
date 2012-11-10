@@ -27,8 +27,9 @@ LIB	= lib$(CPU).a
 
 START	= start.o
 ASOBJS	= io.o fec_dma_tasks.o
-OBJS	= i2c.o traps.o cpu.o cpu_init.o fec.o dramSetup.o interrupts.o \
-	  loadtask.o uart.o speed.o
+OBJS	= cpu.o cpu_init.o dramSetup.o fec.o i2c.o \
+	  interrupts.o loadtask.o speed.o \
+	  traps.o uart.o pci.o
 
 all:	.depend $(START) $(ASOBJS) $(LIB)
 

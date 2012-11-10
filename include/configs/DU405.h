@@ -32,12 +32,14 @@
  * High Level Configuration Options
  * (easy to change)
  */
+#define CONFIG_IDENT_STRING     " $Name:  $"
 
 #define CONFIG_405GP		1	/* This is a PPC405 CPU		*/
 #define CONFIG_4xx		1	/* ...member of PPC4xx family	*/
 #define CONFIG_DU405		1	/* ...on a DU405 board		*/
 
 #define CONFIG_BOARD_EARLY_INIT_F 1	/* call board_early_init_f()	*/
+#define CONFIG_MISC_INIT_R      1       /* call misc_init_r()           */
 
 #define CONFIG_SYS_CLK_FREQ	25000000 /* external frequency to pll	*/
 
@@ -221,7 +223,7 @@
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		8192	/* For IBM 405 CPUs			*/
+#define CFG_DCACHE_SIZE		8192	/* For AMCC 405 CPUs			*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
 #define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value	*/

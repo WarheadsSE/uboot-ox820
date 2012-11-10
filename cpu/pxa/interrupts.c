@@ -29,8 +29,6 @@
 #include <common.h>
 #include <asm/arch/pxa-regs.h>
 
-extern void reset_cpu (ulong addr);
-
 #ifdef CONFIG_USE_IRQ
 /* enable IRQ/FIQ interrupts */
 void enable_interrupts (void)
@@ -192,6 +190,8 @@ ulong get_timer_masked (void)
 void udelay_masked (unsigned long usec)
 {
 	ulong tmo;
+	ulong endtime;
+	signed long diff;
 
 	if (usec >= 1000) {
 		tmo = usec / 1000;
@@ -202,10 +202,12 @@ void udelay_masked (unsigned long usec)
 		tmo /= (1000*1000);
 	}
 
-	reset_timer_masked ();
+	endtime = get_timer_masked () + tmo;
 
-	while (tmo >= get_timer_masked ())
-		/*NOP*/;
+	do {
+		ulong now = get_timer_masked ();
+		diff = endtime - now;
+	} while (diff >= 0);
 }
 
 /*

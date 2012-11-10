@@ -13,6 +13,10 @@
  * Ported to PQ2FADS-ZU and PQ2FADS-VR boards.
  * Ported to MPC8272ADS board.
  *
+ * Copyright (c) 2005 MontaVista Software, Inc.
+ * Vitaly Bordug <vbordug@ru.mvista.com>
+ * Added support for PCI bridge on MPC8272ADS
+ *
  * See file CREDITS for list of people who contributed to this
  * project.
  *
@@ -41,6 +45,15 @@
  */
 
 #define CONFIG_MPC8260ADS	1	/* Motorola PQ2 ADS family board */
+
+#define CONFIG_CPM2		1	/* Has a CPM2 */
+
+/*
+ * Figure out if we are booting low via flash HRCW or high via the BCSR.
+ */
+#if (TEXT_BASE != 0xFFF00000)		/* Boot low (flash HRCW) */
+#   define CFG_LOWBOOT		1
+#endif
 
 /* ADS flavours */
 #define CFG_8260ADS		1	/* MPC8260ADS */
@@ -133,7 +146,7 @@
 #define CFG_MDIO_PIN	0x00002000	/* PC18 */
 #define CFG_MDC_PIN	0x00001000	/* PC19 */
 #else
-#define CFG_MDIO_PIN	0x00400000	/* PC9  */
+#define CFG_MDIO_PIN	0x00400000	/* PC9	*/
 #define CFG_MDC_PIN	0x00200000	/* PC10 */
 #endif /* CONFIG_ADSTYPE == CFG_8272ADS */
 
@@ -159,12 +172,20 @@
 #define CFG_I2C_SLAVE		0x7F
 
 #if defined(CONFIG_SPD_EEPROM) && !defined(CONFIG_SPD_ADDR)
-#define CONFIG_SPD_ADDR         0x50
+#define CONFIG_SPD_ADDR		0x50
 #endif
 #endif /* CONFIG_ADSTYPE >= CFG_PQ2FADS */
 
+/*PCI*/
+#ifdef CONFIG_MPC8272
+#define CONFIG_PCI
+#define CONFIG_PCI_PNP
+#define CONFIG_PCI_BOOTDELAY 0
+#define CONFIG_PCI_SCAN_SHOW
+#endif
+
 #ifndef CONFIG_SDRAM_PBI
-#define CONFIG_SDRAM_PBI        0 /* By default, use bank-based interleaving */
+#define CONFIG_SDRAM_PBI	0 /* By default, use bank-based interleaving */
 #endif
 
 #ifndef CONFIG_8260_CLKIN
@@ -177,41 +198,49 @@
 
 #define CONFIG_BAUDRATE		115200
 
-#define CFG_EXCLUDE		 CFG_CMD_BEDBUG | \
-				 CFG_CMD_BMP	| \
-				 CFG_CMD_BSP	| \
-				 CFG_CMD_DATE	| \
-				 CFG_CMD_DOC	| \
-				 CFG_CMD_DTT	| \
-				 CFG_CMD_EEPROM | \
-				 CFG_CMD_ELF    | \
-				 CFG_CMD_EXT2	| \
-				 CFG_CMD_FAT    | \
-				 CFG_CMD_FDC	| \
-				 CFG_CMD_FDOS	| \
-				 CFG_CMD_HWFLOW	| \
-				 CFG_CMD_IDE	| \
-				 CFG_CMD_KGDB	| \
-				 CFG_CMD_MMC	| \
-				 CFG_CMD_NAND	| \
-				 CFG_CMD_PCI	| \
-				 CFG_CMD_PCMCIA | \
-				 CFG_CMD_REISER	| \
-				 CFG_CMD_SCSI	| \
-				 CFG_CMD_SPI	| \
-				 CFG_CMD_UNIVERSE | \
-				 CFG_CMD_USB	| \
-				 CFG_CMD_VFD	| \
-				 CFG_CMD_XIMG
+#define CFG_EXCLUDE		CFG_CMD_BEDBUG	| \
+				CFG_CMD_BMP	| \
+				CFG_CMD_BSP	| \
+				CFG_CMD_DATE	| \
+				CFG_CMD_DISPLAY | \
+				CFG_CMD_DOC	| \
+				CFG_CMD_DTT	| \
+				CFG_CMD_EEPROM	| \
+				CFG_CMD_ELF	| \
+				CFG_CMD_EXT2	| \
+				CFG_CMD_FAT	| \
+				CFG_CMD_FDC	| \
+				CFG_CMD_FDOS	| \
+				CFG_CMD_HWFLOW	| \
+				CFG_CMD_IDE	| \
+				CFG_CMD_KGDB	| \
+				CFG_CMD_MMC	| \
+				CFG_CMD_NAND	| \
+				CFG_CMD_PCMCIA	| \
+				CFG_CMD_REISER	| \
+				CFG_CMD_SCSI	| \
+				CFG_CMD_SPI	| \
+				CFG_CMD_SNTP	| \
+				CFG_CMD_UNIVERSE | \
+				CFG_CMD_USB	| \
+				CFG_CMD_VFD	| \
+				CFG_CMD_XIMG
 
-#if CONFIG_ADSTYPE >= CFG_PQ2FADS
+#if CONFIG_ADSTYPE == CFG_8272ADS
+#define CONFIG_COMMANDS		(CFG_CMD_ALL & ~( \
+			         CFG_CMD_SDRAM	| \
+				 CFG_CMD_I2C	| \
+				 CFG_EXCLUDE	) )
+#elif CONFIG_ADSTYPE >= CFG_PQ2FADS
 #define CONFIG_COMMANDS		(CFG_CMD_ALL & ~( \
 				 CFG_CMD_SDRAM	| \
 				 CFG_CMD_I2C	| \
+				 CFG_CMD_PCI	| \
 				 CFG_EXCLUDE	) )
 #else
 #define CONFIG_COMMANDS		(CFG_CMD_ALL & ~( \
-				 CFG_EXCLUDE	) )
+				 CMD_CFG_PCI 	| \
+				 CFG_EXCLUDE 	) )
 #endif /* CONFIG_ADSTYPE >= CFG_PQ2FADS */
 
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
@@ -230,7 +259,7 @@
 #endif
 
 #define CONFIG_BZIP2	/* include support for bzip2 compressed images */
-#undef	CONFIG_WATCHDOG	/* disable platform specific watchdog */
+#undef	CONFIG_WATCHDOG /* disable platform specific watchdog */
 
 /*
  * Miscellaneous configurable options
@@ -251,7 +280,7 @@
 #define CFG_MEMTEST_START	0x00100000	/* memtest works on */
 #define CFG_MEMTEST_END		0x00f00000	/* 1 ... 15 MB in DRAM	*/
 
-#define CFG_LOAD_ADDR		0x100000	/* default load address */
+#define CFG_LOAD_ADDR		0x400000	/* default load address */
 
 #define CFG_HZ			1000	/* decrementer freq: 1 ms ticks */
 
@@ -267,16 +296,25 @@
 #define CFG_FLASH_UNLOCK_TOUT	10000	/* Timeout for Flash Clear Lock Bits (in ms) */
 #define CFG_FLASH_PROTECTION		/* "Real" (hardware) sectors protection */
 
-#define CFG_JFFS2_FIRST_SECTOR  1
-#define CFG_JFFS2_LAST_SECTOR   27
+/*
+ * JFFS2 partitions
+ *
+ * Note: fake mtd_id used, no linux mtd map file
+ */
+#define MTDIDS_DEFAULT		"nor0=mpc8260ads-0"
+#define MTDPARTS_DEFAULT	"mtdparts=mpc8260ads-0:-@1m(jffs2)"
 #define CFG_JFFS2_SORT_FRAGMENTS
-#define CFG_JFFS_CUSTOM_PART
 
 /* this is stuff came out of the Motorola docs */
+#ifndef CFG_LOWBOOT
 #define CFG_DEFAULT_IMMR	0x0F010000
+#endif
 
 #define CFG_IMMR		0xF0000000
 #define CFG_BCSR		0xF4500000
+#if CONFIG_ADSTYPE == CFG_8272ADS
+#define CFG_PCI_INT		0xF8200000
+#endif
 #define CFG_SDRAM_BASE		0x00000000
 #define CFG_LSDRAM_BASE		0xFD000000
 
@@ -294,13 +332,21 @@
 #define CFG_GBL_DATA_OFFSET	(CFG_INIT_RAM_END - CFG_GBL_DATA_SIZE)
 #define CFG_INIT_SP_OFFSET	CFG_GBL_DATA_OFFSET
 
-
-/* 0x0EA28205 */
+#ifdef CFG_LOWBOOT
+/* PQ2FADS flash HRCW = 0x0EB4B645 */
+#define CFG_HRCW_MASTER (   ( HRCW_BPS11 | HRCW_CIP )			    |\
+			    ( HRCW_L2CPC10 | HRCW_DPPC11 | HRCW_ISB100 )    |\
+			    ( HRCW_BMS | HRCW_MMR11 | HRCW_LBPC01 | HRCW_APPC10 ) |\
+			    ( HRCW_CS10PC01 | HRCW_MODCK_H0101 )	     \
+			)
+#else
+/* PQ2FADS BCSR HRCW = 0x0CB23645 */
 #define CFG_HRCW_MASTER (   ( HRCW_BPS11 | HRCW_CIP )			    |\
 			    ( HRCW_L2CPC10 | HRCW_DPPC10 | HRCW_ISB010 )    |\
 			    ( HRCW_BMS | HRCW_APPC10 )			    |\
 			    ( HRCW_MODCK_H0101 )			     \
 			)
+#endif
 /* no slaves */
 #define CFG_HRCW_SLAVE1 0
 #define CFG_HRCW_SLAVE2 0
@@ -337,12 +383,10 @@
 #  define CFG_ENV_SIZE		0x200
 #endif /* CFG_RAMBOOT */
 
-
 #define CFG_CACHELINE_SIZE	32	/* For MPC8260 CPU */
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
 #  define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value */
 #endif
-
 
 #define CFG_HID0_INIT		0
 #define CFG_HID0_FINAL		(HID0_ICE | HID0_IFEM | HID0_ABE )
@@ -357,6 +401,13 @@
 #define CFG_OR0_PRELIM		0xFF800876
 #define CFG_BR1_PRELIM		CFG_BCSR | 0x00001801
 #define CFG_OR1_PRELIM		0xFFFF8010
+
+/*We need to configure chip select to use CPLD PCI IC on MPC8272ADS*/
+
+#if CONFIG_ADSTYPE == CFG_8272ADS
+#define CFG_BR3_PRELIM	(CFG_PCI_INT | 0x1801)	/* PCI interrupt controller */
+#define CFG_OR3_PRELIM	0xFFFF8010
+#endif
 
 #define CFG_RMR			RMR_CSRE
 #define CFG_TMCNTSC		(TMCNTSC_SEC|TMCNTSC_ALR|TMCNTSC_TCF|TMCNTSC_TCE)
@@ -389,5 +440,70 @@
 #endif /* CONFIG_ADSTYPE == CFG_PQ2FADS */
 
 #define CFG_RESET_ADDRESS	0x04400000
+
+#if CONFIG_ADSTYPE == CFG_8272ADS
+
+/* PCI Memory map (if different from default map */
+#define CFG_PCI_SLV_MEM_LOCAL	CFG_SDRAM_BASE		/* Local base */
+#define CFG_PCI_SLV_MEM_BUS		0x00000000		/* PCI base */
+#define CFG_PICMR0_MASK_ATTRIB	(PICMR_MASK_512MB | PICMR_ENABLE | \
+				 PICMR_PREFETCH_EN)
+
+/*
+ * These are the windows that allow the CPU to access PCI address space.
+ * All three PCI master windows, which allow the CPU to access PCI
+ * prefetch, non prefetch, and IO space (see below), must all fit within
+ * these windows.
+ */
+
+/*
+ * Master window that allows the CPU to access PCI Memory (prefetch).
+ * This window will be setup with the second set of Outbound ATU registers
+ * in the bridge.
+ */
+
+#define CFG_PCI_MSTR_MEM_LOCAL	0x80000000          /* Local base */
+#define CFG_PCI_MSTR_MEM_BUS	0x80000000          /* PCI base   */
+#define	CFG_CPU_PCI_MEM_START	PCI_MSTR_MEM_LOCAL
+#define CFG_PCI_MSTR_MEM_SIZE	0x20000000          /* 512MB */
+#define CFG_POCMR0_MASK_ATTRIB	(POCMR_MASK_512MB | POCMR_ENABLE | POCMR_PREFETCH_EN)
+
+/*
+ * Master window that allows the CPU to access PCI Memory (non-prefetch).
+ * This window will be setup with the second set of Outbound ATU registers
+ * in the bridge.
+ */
+
+#define CFG_PCI_MSTR_MEMIO_LOCAL    0xA0000000          /* Local base */
+#define CFG_PCI_MSTR_MEMIO_BUS      0xA0000000          /* PCI base   */
+#define CFG_CPU_PCI_MEMIO_START     PCI_MSTR_MEMIO_LOCAL
+#define CFG_PCI_MSTR_MEMIO_SIZE     0x20000000          /* 512MB */
+#define CFG_POCMR1_MASK_ATTRIB      (POCMR_MASK_512MB | POCMR_ENABLE)
+
+/*
+ * Master window that allows the CPU to access PCI IO space.
+ * This window will be setup with the first set of Outbound ATU registers
+ * in the bridge.
+ */
+
+#define CFG_PCI_MSTR_IO_LOCAL       0xF6000000          /* Local base */
+#define CFG_PCI_MSTR_IO_BUS         0x00000000          /* PCI base   */
+#define CFG_CPU_PCI_IO_START        PCI_MSTR_IO_LOCAL
+#define CFG_PCI_MSTR_IO_SIZE        0x02000000          /* 64MB */
+#define CFG_POCMR2_MASK_ATTRIB      (POCMR_MASK_32MB | POCMR_ENABLE | POCMR_PCI_IO)
+
+
+/* PCIBR0 - for PCI IO*/
+#define CFG_PCI_MSTR0_LOCAL		CFG_PCI_MSTR_IO_LOCAL		/* Local base */
+#define CFG_PCIMSK0_MASK		~(CFG_PCI_MSTR_IO_SIZE - 1U)	/* Size of window */
+/* PCIBR1 - prefetch and non-prefetch regions joined together */
+#define CFG_PCI_MSTR1_LOCAL		CFG_PCI_MSTR_MEM_LOCAL
+#define CFG_PCIMSK1_MASK		~(CFG_PCI_MSTR_MEM_SIZE + CFG_PCI_MSTR_MEMIO_SIZE - 1U)
+
+#endif /* CONFIG_ADSTYPE == CONFIG_8272ADS*/
+
+#if CONFIG_ADSTYPE == CFG_8272ADS
+#define CONFIG_HAS_ETH1
+#endif
 
 #endif /* __CONFIG_H */

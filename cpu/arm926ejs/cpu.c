@@ -69,21 +69,21 @@ static void cp_delay (void)
 {
 	volatile int i;
 
-	/* Many OMAP regs need at least 2 nops  */
+	/* copro seems to need some delay between reading and writing */
 	for (i = 0; i < 100; i++);
 }
 
-/* See also ARM Ref. Man. */
+/* See also ARM926EJ-S Technical Reference Manual */
 #define C1_MMU		(1<<0)		/* mmu off/on */
 #define C1_ALIGN	(1<<1)		/* alignment faults off/on */
 #define C1_DC		(1<<2)		/* dcache off/on */
-#define C1_WB		(1<<3)		/* merging write buffer on/off */
-#define C1_BIG_ENDIAN	(1<<7)	/* big endian off/on */
+
+#define C1_BIG_ENDIAN	(1<<7)		/* big endian off/on */
 #define C1_SYS_PROT	(1<<8)		/* system protection */
 #define C1_ROM_PROT	(1<<9)		/* ROM protection */
 #define C1_IC		(1<<12)		/* icache off/on */
-#define C1_HIGH_VECTORS	(1<<13)	/* location of vectors: low/high addresses */
-#define RESERVED_1	(0xf << 3)	/* must be 111b for R/W */
+#define C1_HIGH_VECTORS	(1<<13)		/* location of vectors: low/high addresses */
+
 
 int cpu_init (void)
 {
@@ -120,13 +120,12 @@ int cleanup_before_linux (void)
 	/* flush I/D-cache */
 	i = 0;
 	asm ("mcr p15, 0, %0, c7, c7, 0": :"r" (i));
+
 	return (0);
 }
 
 int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-	extern void reset_cpu (ulong addr);
-
 	disable_interrupts ();
 	reset_cpu (0);
 	/*NOTREACHED*/

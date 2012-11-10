@@ -28,8 +28,6 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-#include <asm/processor.h>
-
 /* This define must be before the core.h include */
 #define CONFIG_DB64460		1	/* this is an DB64460 board	*/
 
@@ -114,8 +112,8 @@
 /* ronen - autoboot using tftp */
 #if (CONFIG_BOOTDELAY >= 0)
 #define CONFIG_BOOTCOMMAND	"tftpboot 0x400000 uImage;\
- setenv bootargs $(bootargs) $(bootargs_root) nfsroot=$(serverip):$(rootpath) \
- ip=$(ipaddr):$(serverip)$(bootargs_end);  bootm 0x400000; "
+ setenv bootargs ${bootargs} ${bootargs_root} nfsroot=${serverip}:${rootpath} \
+ ip=${ipaddr}:${serverip}${bootargs_end};  bootm 0x400000; "
 
 #define CONFIG_BOOTARGS "console=ttyS0,115200"
 
@@ -130,8 +128,8 @@ cp.b 100000 FFF00000 0x40000;protect on 1:0-7;\0" \
       "bootargs_root=root=/dev/nfs rw\0" \
       "bootargs_end=:::DB64460:eth0:none \0"\
       "ethprime=mv_enet0\0"\
-      "standalone=fsload 0x400000 uImage;setenv bootargs $(bootargs) root=/dev/mtdblock/0 rw \
-ip=$(ipaddr):$(serverip)$(bootargs_end); bootm 0x400000;\0"
+      "standalone=fsload 0x400000 uImage;setenv bootargs ${bootargs} root=/dev/mtdblock/0 rw \
+ip=${ipaddr}:${serverip}${bootargs_end}; bootm 0x400000;\0"
 
 /* --------------------------------------------------------------------------------------------------------------- */
 /* New bootcommands for Marvell DB64460 c 2002 Ingo Assmus */
@@ -157,10 +155,27 @@ ip=$(ipaddr):$(serverip)$(bootargs_end); bootm 0x400000;\0"
 
 #define CONFIG_BOOTP_MASK	(CONFIG_BOOTP_DEFAULT | \
 				 CONFIG_BOOTP_BOOTFILESIZE)
+/*
+ * JFFS2 partitions
+ *
+ */
+/* No command line, one static partition, whole device */
+#undef CONFIG_JFFS2_CMDLINE
+#define CONFIG_JFFS2_DEV		"nor1"
+#define CONFIG_JFFS2_PART_SIZE		0xFFFFFFFF
+#define CONFIG_JFFS2_PART_OFFSET	0x00000000
 
-/* Flash banks JFFS2 should use */
-#define CFG_JFFS2_FIRST_BANK	1
-#define CFG_JFFS2_NUM_BANKS	1
+/* mtdparts command line support */
+
+/* Use first bank for JFFS2, second bank contains U-Boot.
+ *
+ * Note: fake mtd_id's used, no linux mtd map file.
+ */
+/*
+#define CONFIG_JFFS2_CMDLINE
+#define MTDIDS_DEFAULT		"nor1=db64460-1"
+#define MTDPARTS_DEFAULT	"mtdparts=db64460-1:-(jffs2)"
+*/
 
 #define CONFIG_COMMANDS (CONFIG_CMD_DFL \
 			 | CFG_CMD_ASKENV \

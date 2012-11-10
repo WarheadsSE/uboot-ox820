@@ -45,6 +45,7 @@
  */
 
 /* #define DEBUG	1 */
+/* #ifdef DEPLOYMENT	1 */
 
 #undef	CONFIG_MPC860
 #define CONFIG_MPC823		1	/* This is a MPC823e CPU. */
@@ -59,32 +60,54 @@
 #undef	CONFIG_8xx_CONS_NONE
 #define CONFIG_BAUDRATE		9600	/* console default baudrate = 9600bps	*/
 
-#ifdef	CONFIG_LCD
-#define CONFIG_BOOTDELAY	12	/* autoboot after 12 seconds	*/
+#ifdef DEBUG
+#define CONFIG_BOOTDELAY        -1      /* autoboot disabled            */
 #else
-#define CONFIG_BOOTDELAY	-1	/* autoboot disabled		*/
-#endif
+#define CONFIG_BOOTDELAY        6       /* autoboot after 6 seconds     */
+
+#ifdef DEPLOYMENT
+#define CONFIG_BOOT_RETRY_TIME          -1
+#define CONFIG_AUTOBOOT_KEYED
+#define CONFIG_AUTOBOOT_PROMPT          "autoboot in %d seconds (stop with 'st')...\n"
+#define CONFIG_AUTOBOOT_STOP_STR        "st"
+#define CONFIG_ZERO_BOOTDELAY_CHECK
+#define CONFIG_RESET_TO_RETRY           1
+#define CONFIG_BOOT_RETRY_MIN           1
+#endif	/* DEPLOYMENT */
+#endif	/* DEBUG */
+
+/* pre-boot commands */
+#define CONFIG_PREBOOT          "setenv stdout serial;setenv stdin serial"
 
 #undef	CONFIG_BOOTARGS
 #define CONFIG_EXTRA_ENV_SETTINGS					\
 	"netdev=eth0\0"							\
-	"nfsargs=setenv bootargs console=ttyS0,9600 root=/dev/nfs rw "	\
-		"nfsroot=$(serverip):$(rootpath)\0"			\
-	"ramargs=setenv bootargs console=tty0 console=ttyS0,9600 "	\
-		"root=/dev/ram rw\0"					\
-	"addip=setenv bootargs $(bootargs) "				\
-		"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask)"	\
-		":$(hostname):$(netdev):off panic=1\0"			\
+	"nfsargs=setenv bootargs console=tty0 console=ttyS0,9600 "	\
+		"root=/dev/nfs rw nfsroot=${serverip}:${rootpath}\0"	\
+	"ramargs=setenv bootargs console=tty0 root=/dev/ram rw\0"	\
+	"addip=setenv bootargs ${bootargs} "				\
+		"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}"	\
+		":${hostname}:${netdev}:off panic=1\0"			\
 	"flash_nfs=run nfsargs addip;"					\
-		"bootm $(kernel_addr)\0"				\
+		"bootm ${kernel_addr}\0"				\
 	"flash_self=run ramargs addip;"					\
-		"bootm $(kernel_addr) $(ramdisk_addr)\0"		\
-	"net_nfs=tftp 200000 $(bootfile);run nfsargs addip;bootm\0"	\
+		"bootm ${kernel_addr} ${ramdisk_addr}\0"		\
+	"net_nfs=tftp 200000 ${bootfile};run nfsargs addip;bootm\0"	\
 	"gatewayip=172.16.115.254\0"					\
 	"netmask=255.255.255.0\0"					\
-	"kernel_addr=ff080000\0"					\
+	"kernel_addr=ff040000\0"					\
 	"ramdisk_addr=ff200000\0"					\
-	""
+	"ku=era ${kernel_addr} ff1fffff;cp.b 100000 ${kernel_addr} "	\
+		"${filesize};md ${kernel_addr};"			\
+		"echo kernel updating finished\0"			\
+	"uu=protect off 1:0-4;era 1:0-4;cp.b 100000 ff000000 "		\
+		"${filesize};md ff000000;"				\
+		"echo u-boot updating finished\0"			\
+	"eu=protect off 1:6;era 1:6;reset\0"				\
+	"lcd=setenv stdout lcd;setenv stdin lcd\0"			\
+	"ser=setenv stdout serial;setenv stdin serial\0"		\
+	"verify=no"
+
 #define CONFIG_BOOTCOMMAND	"run flash_self"
 
 #define CONFIG_LOADS_ECHO	1	/* echo on for serial download	*/
@@ -108,6 +131,7 @@
 #else
 #define CFG_CBSIZE	256		/* Console I/O Buffer Size	*/
 #endif
+
 #define CFG_PBSIZE (CFG_CBSIZE+sizeof(CFG_PROMPT)+16) /* Print Buffer Size */
 #define CFG_MAXARGS	16		/* max number of command args	*/
 #define CFG_BARGSIZE	CFG_CBSIZE	/* Boot Argument Buffer Size	*/
@@ -151,6 +175,7 @@
 #else
 #define CFG_MONITOR_LEN		(128 << 10)	/* Reserve 128 kB for Monitor */
 #endif
+
 #define CFG_MONITOR_BASE	0xFF000000
 #define CFG_MALLOC_LEN		(128 << 10)	/* Reserve 128 kB for malloc()	*/
 
@@ -176,7 +201,7 @@
 #define CFG_ENV_IS_IN_FLASH
 #define CFG_ENV_OFFSET		0x30000 /* Offset of Environment Sector		*/
 #define CFG_ENV_SIZE		0x8000	/* Total Size of Environment Sector	*/
-#endif
+#endif	/* CFG_ENV_IS_IN_NVRAM */
 
 #define CFG_RESET_ADDRESS	((ulong)((((immap_t *)CFG_IMMR)->im_clkrst.res)))
 
@@ -255,7 +280,7 @@
 #if defined(RPXlite_64MHz)
 #define CFG_SCCR	( SCCR_TBS | SCCR_EBDF01 )  /* %%%SCCR:0x02020000 */
 #else
-#define CFG_SCCR	( SCCR_TBS | SCCR_EBDF00 )  /* %%%SCCR:0x02000000 */
+#define CFG_SCCR        ( SCCR_TBS | SCCR_EBDF00 )  /* %%%SCCR:0x02000000 */
 #endif
 
 /*-----------------------------------------------------------------------

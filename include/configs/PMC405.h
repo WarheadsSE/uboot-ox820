@@ -183,18 +183,36 @@
 /*-----------------------------------------------------------------------
  * FLASH organization
  */
-#define CFG_FLASH_CFI		1	/* Flash is CFI conformant		*/
-#define CFG_MAX_FLASH_SECT	128	/* max number of sectors on one chip	*/
-#define CFG_MAX_FLASH_BANKS	2	/* max number of memory banks		*/
-#undef CFG_FLASH_PROTECTION		/* don't use hardware protection	*/
-#define CFG_FLASH_USE_BUFFER_WRITE 1	/* use buffered writes (20x faster)	*/
 #define CFG_FLASH_BASE		0xFE000000
 #define CFG_FLASH_INCREMENT	0x01000000
 
+#define CFG_FLASH_CFI         1       /* Flash is CFI conformant */
+#define CFG_FLASH_CFI_DRIVER  1       /* Use the common driver */
+#define CFG_FLASH_PROTECTION  1       /* don't use hardware protection        */
+#define CFG_FLASH_USE_BUFFER_WRITE 1  /* use buffered writes (20x faster)     */
+#define CFG_MAX_FLASH_BANKS   2       /* max num of flash banks */
+#define CFG_FLASH_BANKS_LIST { CFG_FLASH_BASE, CFG_FLASH_BASE + CFG_FLASH_INCREMENT }
+#define CFG_MAX_FLASH_SECT    128     /* max num of sects on one chip */
+
 #define CFG_FLASH_EMPTY_INFO		/* print 'E' for empty sector on flinfo */
 
-#define CFG_JFFS2_FIRST_BANK	0	    /* use for JFFS2 */
-#define CFG_JFFS2_NUM_BANKS	1	    /* ! second bank contains u-boot	*/
+/*
+ * JFFS2 partitions - second bank contains u-boot
+ *
+ */
+/* No command line, one static partition, whole device */
+#undef CONFIG_JFFS2_CMDLINE
+#define CONFIG_JFFS2_DEV		"nor0"
+#define CONFIG_JFFS2_PART_SIZE		0x01b00000
+#define CONFIG_JFFS2_PART_OFFSET	0x00400000
+
+/* mtdparts command line support */
+/* Note: fake mtd_id used, no linux mtd map file */
+/*
+#define CONFIG_JFFS2_CMDLINE
+#define MTDIDS_DEFAULT		"nor0=pmc405-0"
+#define MTDPARTS_DEFAULT	"mtdparts=pmc405-0:-(jffs2)"
+*/
 
 /*-----------------------------------------------------------------------
  * Environment Variable setup
@@ -227,7 +245,7 @@
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		16384	/* For IBM 405 CPUs, older 405 ppc's	*/
+#define CFG_DCACHE_SIZE		16384	/* For AMCC 405 CPUs, older 405 ppc's	*/
 					/* have only 8kB, 16kB is save here	*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
@@ -252,7 +270,7 @@
 #define CFG_EBC_PB1CR	FLASH1_BA | 0x9A000 /* BAS=0xFE0,BS=16MB,BU=R/W,BW=16bit*/
 
 /* Memory Bank 2 (CAN0, 1, RTC) initialization					*/
-#define CFG_EBC_PB2AP	0x03000040   /* TWT=6,TH=0,CSN=0,OEN=0,WBN=0,WBF=0	*/
+#define CFG_EBC_PB2AP	0x03000440   /* TWT=5,TH=2,CSN=0,OEN=0,WBN=0,WBF=0      */
 #define CFG_EBC_PB2CR	CAN_BA | 0x18000    /* BAS=0xF00,BS=1MB,BU=R/W,BW=8bit	*/
 
 /* Memory Bank 3 (CompactFlash IDE, FPGA internal) initialization		*/

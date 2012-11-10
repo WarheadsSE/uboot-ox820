@@ -141,6 +141,20 @@ int board_early_init_f (void)
 }
 
 
+int misc_init_r (void)
+{
+	unsigned long cntrl0Reg;
+
+	/*
+	 * Setup UART1 handshaking: use CTS instead of DSR
+	 */
+	cntrl0Reg = mfdcr(cntrl0);
+	mtdcr(cntrl0, cntrl0Reg | 0x00001000);
+
+	return (0);
+}
+
+
 /*
  * Check Board Identity:
  */
@@ -148,7 +162,7 @@ int checkboard (void)
 {
 	int index;
 	int len;
-	unsigned char str[64];
+	char str[64];
 	int i = getenv_r ("serial#", str, sizeof (str));
 
 	puts ("Board: ");

@@ -296,7 +296,7 @@ extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
 #endif
 
 /* "globals" within this file */
-static char *ifs;
+static uchar *ifs;
 static char map[256];
 #ifndef __U_BOOT__
 static int fake_mode;
@@ -1022,12 +1022,30 @@ static void get_user_input(struct in_str *i)
 	int n;
 	static char the_command[CFG_CBSIZE];
 
+#ifdef CONFIG_BOOT_RETRY_TIME
+#  ifdef CONFIG_RESET_TO_RETRY
+	extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
+#  else
+#	error "This currently only works with CONFIG_RESET_TO_RETRY enabled"
+#  endif
+	reset_cmd_timeout();
+#endif
 	i->__promptme = 1;
 	if (i->promptmode == 1) {
 		n = readline(CFG_PROMPT);
 	} else {
 		n = readline(CFG_PROMPT_HUSH_PS2);
 	}
+#ifdef CONFIG_BOOT_RETRY_TIME
+	if (n == -2) {
+	  puts("\nTimeout waiting for command\n");
+#  ifdef CONFIG_RESET_TO_RETRY
+	  do_reset(NULL, 0, 0, NULL);
+#  else
+#	error "This currently only works with CONFIG_RESET_TO_RETRY enabled"
+#  endif
+	}
+#endif
 	if (n == -1 ) {
 		flag_repeat = 0;
 		i->__promptme = 0;
@@ -2371,6 +2389,7 @@ struct pipe *new_pipe(void) {
 	pi->progs = NULL;
 	pi->next = NULL;
 	pi->followup = 0;  /* invalid */
+	pi->r_mode = RES_NONE;
 	return pi;
 }
 
@@ -3115,8 +3134,8 @@ void mapset(const unsigned char *set, int code)
 void update_ifs_map(void)
 {
 	/* char *ifs and char map[256] are both globals. */
-	ifs = getenv("IFS");
-	if (ifs == NULL) ifs=" \t\n";
+	ifs = (uchar *)getenv("IFS");
+	if (ifs == NULL) ifs=(uchar *)" \t\n";
 	/* Precompute a list of 'flow through' behavior so it can be treated
 	 * quickly up front.  Computation is necessary because of IFS.
 	 * Special case handling of IFS == " \t\n" is not implemented.
@@ -3125,11 +3144,11 @@ void update_ifs_map(void)
 	 */
 	memset(map,0,sizeof(map)); /* most characters flow through always */
 #ifndef __U_BOOT__
-	mapset("\\$'\"`", 3);      /* never flow through */
-	mapset("<>;&|(){}#", 1);   /* flow through if quoted */
+	mapset((uchar *)"\\$'\"`", 3);      /* never flow through */
+	mapset((uchar *)"<>;&|(){}#", 1);   /* flow through if quoted */
 #else
-	mapset("\\$'\"", 3);       /* never flow through */
-	mapset(";&|#", 1);         /* flow through if quoted */
+	mapset((uchar *)"\\$'\"", 3);       /* never flow through */
+	mapset((uchar *)";&|#", 1);         /* flow through if quoted */
 #endif
 	mapset(ifs, 2);            /* also flow through if quoted */
 }
@@ -3149,7 +3168,7 @@ int parse_stream_outer(struct in_str *inp, int flag)
 		ctx.type = flag;
 		initialize_context(&ctx);
 		update_ifs_map();
-		if (!(flag & FLAG_PARSE_SEMICOLON) || (flag & FLAG_REPARSING)) mapset(";$&|", 0);
+		if (!(flag & FLAG_PARSE_SEMICOLON) || (flag & FLAG_REPARSING)) mapset((uchar *)";$&|", 0);
 		inp->promptmode=1;
 		rcode = parse_stream(&temp, &ctx, inp, '\n');
 #ifdef __U_BOOT__
