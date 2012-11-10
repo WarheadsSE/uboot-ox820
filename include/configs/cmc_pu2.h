@@ -1,5 +1,5 @@
 /*
- * Gary Jennejohn <garyj@denx.de>
+ * 2004-2005 Gary Jennejohn <garyj@denx.de>
  *
  * Configuration settings for the CMC PU2 board.
  *
@@ -25,32 +25,53 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-/*
- * If we are developing, we might want to start armboot from ram
- * so we MUST NOT initialize critical regs like mem-timing ...
- */
-#define CONFIG_INIT_CRITICAL		/* undef for developing */
-
 /* ARM asynchronous clock */
-#define AT91C_MAIN_CLOCK	207360000	/* from 18.432 MHz crystal (18432000 / 4 * 45) */
-#define AT91C_MASTER_CLOCK	69120000	/* peripheral clock (AT91C_MASTER_CLOCK / 3) */
+#define AT91C_MAIN_CLOCK	179712000	/* from 18.432 MHz crystal (18432000 / 4 * 39) */
+#define AT91C_MASTER_CLOCK	(AT91C_MAIN_CLOCK/3)	/* peripheral clock */
 
 #define AT91_SLOW_CLOCK		32768	/* slow clock */
 
-#define CONFIG_AT91RM9200DK	1	/* on an AT91RM9200DK Board	 */
-#define CONFIG_CMC_PU2		1	/* on an CMC_PU2 Board	 */
-#undef CONFIG_USE_IRQ			/* we don't need IRQ/FIQ stuff */
+#define CONFIG_ARM920T		1	/* This is an ARM920T Core	*/
+#define CONFIG_AT91RM9200	1	/* It's an Atmel AT91RM9200 SoC	*/
+#define CONFIG_CMC_PU2		1	/* on an CMC_PU2 Board		*/
+#undef  CONFIG_USE_IRQ			/* we don't need IRQ/FIQ stuff	*/
+#define USE_920T_MMU		1
+
 #define CONFIG_CMDLINE_TAG	1	/* enable passing of ATAGs	*/
 #define CONFIG_SETUP_MEMORY_TAGS 1
 #define CONFIG_INITRD_TAG	1
 
-/* define this to include the functionality of boot.bin in u-boot */
-#define CONFIG_BOOTBINFUNC
+#ifndef CONFIG_SKIP_LOWLEVEL_INIT
+#define CFG_USE_MAIN_OSCILLATOR		1
+/* flash */
+#define MC_PUIA_VAL	0x00000000
+#define MC_PUP_VAL	0x00000000
+#define MC_PUER_VAL	0x00000000
+#define MC_ASR_VAL	0x00000000
+#define MC_AASR_VAL	0x00000000
+#define EBI_CFGR_VAL	0x00000000
+#define SMC2_CSR_VAL	0x100032ad /* 16bit, 2 TDF, 4 WS */
 
-/* just to make sure */
-#ifndef CONFIG_BOOTBINFUNC
-#define CONFIG_BOOTBINFUNC
-#endif
+/* clocks */
+#define PLLAR_VAL	0x2026BE04 /* 179,712 MHz for PCK */
+#define PLLBR_VAL	0x10483E0E /* 48.054857 MHz (divider by 2 for USB) */
+#define MCKR_VAL	0x00000202 /* PCK/3 = MCK Master Clock = 69.120MHz from PLLA */
+
+/* sdram */
+#define PIOC_ASR_VAL	0xFFFF0000 /* Configure PIOC as peripheral (D16/D31) */
+#define PIOC_BSR_VAL	0x00000000
+#define PIOC_PDR_VAL	0xFFFF0000
+#define EBI_CSA_VAL	0x00000002 /* CS1=SDRAM */
+#define SDRC_CR_VAL	0x3399c1d4 /* set up the SDRAM */
+#define SDRAM		0x20000000 /* address of the SDRAM */
+#define SDRAM1		0x20000080 /* address of the SDRAM */
+#define SDRAM_VAL	0x00000000 /* value written to SDRAM */
+#define SDRC_MR_VAL	0x00000002 /* Precharge All */
+#define SDRC_MR_VAL1	0x00000004 /* refresh */
+#define SDRC_MR_VAL2	0x00000003 /* Load Mode Register */
+#define SDRC_MR_VAL3	0x00000000 /* Normal Mode */
+#define SDRC_TR_VAL	0x000002E0 /* Write refresh rate */
+#endif	/* CONFIG_SKIP_LOWLEVEL_INIT */
 
 /*
  * Size of malloc() pool
@@ -59,8 +80,6 @@
 #define CFG_GBL_DATA_SIZE	128	/* size in bytes reserved for initial data */
 
 #define CONFIG_BAUDRATE		9600
-
-#define CFG_AT91C_BRGR_DIVISOR	450	/* hardcode so no __divsi3 : AT91C_MASTER_CLOCK /(baudrate * 16) */
 
 /*
  * Hardware drivers
@@ -94,15 +113,19 @@
 #ifdef CONFIG_HARD_I2C
 #define CONFIG_COMMANDS		\
 		       ((CONFIG_CMD_DFL	| \
-			CFG_CMD_I2C	| \
 			CFG_CMD_DATE	| \
+			CFG_CMD_DHCP 	| \
 			CFG_CMD_EEPROM	| \
-			CFG_CMD_DHCP )	& \
+			CFG_CMD_I2C	| \
+			CFG_CMD_NFS	| \
+			CFG_CMD_SNTP  ) & \
 		      ~(CFG_CMD_FPGA | CFG_CMD_MISC) )
 #else
 #define CONFIG_COMMANDS		\
 		       ((CONFIG_CMD_DFL	| \
-			CFG_CMD_DHCP )	& \
+			CFG_CMD_DHCP 	| \
+			CFG_CMD_NFS	| \
+			CFG_CMD_SNTP  ) & \
 		      ~(CFG_CMD_FPGA | CFG_CMD_MISC) )
 #define CONFIG_TIMESTAMP
 #endif
@@ -118,14 +141,13 @@
 #define PHYS_SDRAM		0x20000000
 #define PHYS_SDRAM_SIZE		0x1000000 	/* 16 megs */
 
-#define CFG_MEMTEST_START		PHYS_SDRAM
-#define CFG_MEMTEST_END			CFG_MEMTEST_START + PHYS_SDRAM_SIZE - 262144
+#define CFG_MEMTEST_START	PHYS_SDRAM
+#define CFG_MEMTEST_END		CFG_MEMTEST_START + PHYS_SDRAM_SIZE - 262144
 
 #define CONFIG_DRIVER_ETHER
 #define CONFIG_NET_RETRY_COUNT		20
 #define CONFIG_AT91C_USE_RMII
 
-#define CONFIG_HAS_DATAFLASH		1
 #define CFG_SPI_WRITE_TOUT		(5*CFG_HZ)
 #define CFG_MAX_DATAFLASH_BANKS		2
 #define CFG_MAX_DATAFLASH_PAGES		16384
@@ -138,8 +160,8 @@
 #define CFG_MONITOR_BASE		CFG_FLASH_BASE
 #define CFG_MAX_FLASH_BANKS		1
 #define CFG_MAX_FLASH_SECT		256
-#define CFG_FLASH_ERASE_TOUT		(2*CFG_HZ) /* Timeout for Flash Erase */
-#define CFG_FLASH_WRITE_TOUT		(2*CFG_HZ) /* Timeout for Flash Write */
+#define CFG_FLASH_ERASE_TOUT		(11 * CFG_HZ)	/* Timeout for Flash Erase */
+#define CFG_FLASH_WRITE_TOUT		( 2 * CFG_HZ)	/* Timeout for Flash Write */
 
 #define CFG_ENV_IS_IN_FLASH		1
 #define CFG_ENV_OFFSET			0x20000		/* after u-boot.bin */
@@ -175,8 +197,8 @@ struct bd_info_ext {
 #endif	/* __ASSEMBLY__ */
 
 #define CFG_HZ 1000
-#define CFG_HZ_CLOCK AT91C_MASTER_CLOCK/2	/* AT91C_TC0_CMR is implicitly set to */
-					/* AT91C_TC_TIMER_DIV1_CLOCK */
+#define CFG_HZ_CLOCK (AT91C_MASTER_CLOCK/2)	/* AT91C_TC0_CMR is implicitly set to */
+						/* AT91C_TC_TIMER_DIV1_CLOCK */
 
 #define CONFIG_STACKSIZE	(32*1024)	/* regular stack */
 
@@ -184,4 +206,48 @@ struct bd_info_ext {
 #error CONFIG_USE_IRQ not supported
 #endif
 
+#define CFG_DEVICE_NULLDEV	 1	/* enble null device		*/
+#define CONFIG_SILENT_CONSOLE	 1	/* enable silent startup	*/
+
+#define CONFIG_AUTOBOOT_KEYED
+#define CONFIG_AUTOBOOT_PROMPT "autoboot in %d seconds\n"
+#define CONFIG_AUTOBOOT_STOP_STR "R"	/* default password */
+
+#define CONFIG_VERSION_VARIABLE	1       /* include version env variable */
+
+#define	CONFIG_EXTRA_ENV_SETTINGS	\
+	"net_nfs=tftp ${loadaddr} ${bootfile};run nfsargs addip addcons " \
+		"addmtd;bootm\0" \
+	"nfsargs=setenv bootargs root=/dev/nfs rw " \
+		"nfsroot=${serverip}:${rootpath}\0" \
+	"net_cramfs=tftp ${loadaddr} ${bootfile}; run flashargs addip " \
+		"addcons addmtd; bootm\0" \
+	"flash_cramfs=run flashargs addip addcons addmtd; bootm 10030000\0" \
+	"flashargs=setenv bootargs root=/dev/mtdblock3 ro\0" \
+	"addip=setenv bootargs ${bootargs} ethaddr=${ethaddr} " \
+		"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:" \
+		"${hostname}::off\0" \
+	"addcons=setenv bootargs ${bootargs} console=ttyS0,${baudrate}\0" \
+	"addmtd=setenv bootargs ${bootargs} mtdparts=cmc_pu2:128k(uboot)ro," \
+		"64k(environment),768k(linux),4096k(root),-\0" \
+	"load=tftp ${loadaddr} ${loadfile}\0" \
+	"update=protect off 10000000 1001ffff;erase 10000000 1001ffff; " \
+		"cp.b ${loadaddr} 10000000 ${filesize};" \
+		"protect on 10000000 1001ffff\0" \
+	"updatel=era 10030000 100effff;tftp ${loadaddr} ${bootfile}; " \
+		"cp.b ${loadaddr} 10030000 ${filesize}\0" \
+	"updatec=era 100f0000 104effff;tftp ${loadaddr} ${cramfsimage}; " \
+		"cp.b ${loadaddr} 100f0000 ${filesize}\0" \
+	"updatej=era 104f0000 107fffff;tftp ${loadaddr} ${jffsimage}; " \
+		"cp.b ${loadaddr} 104f0000 ${filesize}\0" \
+	"cramfsimage=cramfs_cmc-pu2.img\0" \
+	"jffsimage=jffs2_cmc-pu2.img\0" \
+	"loadfile=u-boot_cmc-pu2.bin\0" \
+	"bootfile=uImage_cmc-pu2\0" \
+	"loadaddr=0x20800000\0" \
+	"hostname=CMC-TC-PU2\0" \
+	"bootcmd=run dhcp_start;run flash_cramfs\0" \
+	"autoload=n\0" \
+	"dhcp_start=echo no DHCP\0" \
+	"ipaddr=192.168.0.190\0"
 #endif	/* __CONFIG_H */

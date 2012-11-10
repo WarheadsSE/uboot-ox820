@@ -40,13 +40,13 @@
 #include <post.h>
 #endif
 #include <lcd.h>
+#include <watchdog.h>
 
 #if defined(CONFIG_PXA250)
 #include <asm/byteorder.h>
 #endif
 
 #if defined(CONFIG_MPC823)
-#include <watchdog.h>
 #include <lcdvideo.h>
 #endif
 
@@ -58,6 +58,15 @@
 /************************************************************************/
 #include <video_font.h>		/* Get font data, width and height	*/
 
+/************************************************************************/
+/* ** LOGO DATA								*/
+/************************************************************************/
+#ifdef CONFIG_LCD_LOGO
+# include <bmp_logo.h>		/* Get logo data, width and height	*/
+# if (CONSOLE_COLOR_WHITE >= BMP_LOGO_OFFSET)
+#  error Default Color Map overlaps with Logo Color Map
+# endif
+#endif
 
 ulong lcd_setmem (ulong addr);
 
@@ -269,10 +278,10 @@ static void lcd_drawchars (ushort x, ushort y, uchar *str, int count)
 
 static inline void lcd_puts_xy (ushort x, ushort y, uchar *s)
 {
-#if defined(CONFIG_LCD_LOGO) && !defined(LCD_INFO_BELOW_LOGO)
-	lcd_drawchars (x, y+BMP_LOGO_HEIGHT, s, strlen (s));
+#if defined(CONFIG_LCD_LOGO) && !defined(CONFIG_LCD_INFO_BELOW_LOGO)
+	lcd_drawchars (x, y+BMP_LOGO_HEIGHT, s, strlen ((char *)s));
 #else
-	lcd_drawchars (x, y, s, strlen (s));
+	lcd_drawchars (x, y, s, strlen ((char *)s));
 #endif
 }
 
@@ -280,7 +289,7 @@ static inline void lcd_puts_xy (ushort x, ushort y, uchar *s)
 
 static inline void lcd_putc_xy (ushort x, ushort y, uchar c)
 {
-#if defined(CONFIG_LCD_LOGO) && !defined(LCD_INFO_BELOW_LOGO)
+#if defined(CONFIG_LCD_LOGO) && !defined(CONFIG_LCD_INFO_BELOW_LOGO)
 	lcd_drawchars (x, y+BMP_LOGO_HEIGHT, &c, 1);
 #else
 	lcd_drawchars (x, y, &c, 1);
@@ -420,7 +429,7 @@ static int lcd_init (void *lcdbase)
 
 	/* Initialize the console */
 	console_col = 0;
-#ifdef LCD_INFO_BELOW_LOGO
+#ifdef CONFIG_LCD_INFO_BELOW_LOGO
 	console_row = 7 + BMP_LOGO_HEIGHT / VIDEO_FONT_HEIGHT;
 #else
 	console_row = 1;	/* leave 1 blank line below logo */
@@ -517,7 +526,7 @@ void bitmap_plot (int x, int y)
 		sizeof(bmp_logo_palette)/(sizeof(ushort)));
 
 	bmap = &bmp_logo_bitmap[0];
-	fb   = (char *)(lcd_base + y * lcd_line_length + x);
+	fb   = (uchar *)(lcd_base + y * lcd_line_length + x);
 
 	if (NBITS(panel_info.vl_bpix) < 12) {
 		/* Leave room for default color map */
@@ -629,9 +638,8 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 			bmp_color_table_entry_t cte = bmp->color_table[i];
 			ushort colreg =
 				( ((cte.red)   << 8) & 0xf800) |
-				( ((cte.green) << 4) & 0x07e0) |
-				( (cte.blue) & 0x001f) ;
-
+				( ((cte.green) << 3) & 0x07e0) |
+				( ((cte.blue)  >> 3) & 0x001f) ;
 #ifdef CFG_INVERT_COLORS
 			*cmap = 0xffff - colreg;
 #else
@@ -655,6 +663,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	fb   = (uchar *) (lcd_base +
 		(y + height - 1) * lcd_line_length + x);
 	for (i = 0; i < height; ++i) {
+		WATCHDOG_RESET();
 		for (j = 0; j < width ; j++)
 #if defined(CONFIG_PXA250)
 			*(fb++)=*(bmap++);
@@ -672,12 +681,12 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 
 static void *lcd_logo (void)
 {
-#ifdef LCD_INFO
+#ifdef CONFIG_LCD_INFO
 	DECLARE_GLOBAL_DATA_PTR;
 
 	char info[80];
 	char temp[32];
-#endif /* LCD_INFO */
+#endif /* CONFIG_LCD_INFO */
 
 #ifdef CONFIG_SPLASH_SCREEN
 	char *s;
@@ -699,18 +708,18 @@ static void *lcd_logo (void)
 #endif /* CONFIG_LCD_LOGO */
 
 #ifdef CONFIG_MPC823
-#ifdef LCD_INFO
+# ifdef CONFIG_LCD_INFO
 	sprintf (info, "%s (%s - %s) ", U_BOOT_VERSION, __DATE__, __TIME__);
-	lcd_drawchars (LCD_INFO_X, LCD_INFO_Y, info, strlen(info));
+	lcd_drawchars (LCD_INFO_X, LCD_INFO_Y, (uchar *)info, strlen(info));
 
 	sprintf (info, "(C) 2004 DENX Software Engineering");
 	lcd_drawchars (LCD_INFO_X, LCD_INFO_Y + VIDEO_FONT_HEIGHT,
-					info, strlen(info));
+					(uchar *)info, strlen(info));
 
 	sprintf (info, "    Wolfgang DENK, wd@denx.de");
 	lcd_drawchars (LCD_INFO_X, LCD_INFO_Y + VIDEO_FONT_HEIGHT * 2,
-					info, strlen(info));
-#ifdef LCD_INFO_BELOW_LOGO
+					(uchar *)info, strlen(info));
+#  ifdef CONFIG_LCD_INFO_BELOW_LOGO
 	sprintf (info, "MPC823 CPU at %s MHz",
 		strmhz(temp, gd->cpu_clk));
 	lcd_drawchars (LCD_INFO_X, LCD_INFO_Y + VIDEO_FONT_HEIGHT * 3,
@@ -720,7 +729,7 @@ static void *lcd_logo (void)
 		gd->bd->bi_flashsize >> 20 );
 	lcd_drawchars (LCD_INFO_X, LCD_INFO_Y + VIDEO_FONT_HEIGHT * 4,
 					info, strlen(info));
-#else
+#  else
 	/* leave one blank line */
 
 	sprintf (info, "MPC823 CPU at %s MHz, %ld MB RAM, %ld MB Flash",
@@ -728,17 +737,17 @@ static void *lcd_logo (void)
 		gd->ram_size >> 20,
 		gd->bd->bi_flashsize >> 20 );
 	lcd_drawchars (LCD_INFO_X, LCD_INFO_Y + VIDEO_FONT_HEIGHT * 4,
-					info, strlen(info));
+					(uchar *)info, strlen(info));
 
+#  endif /* CONFIG_LCD_INFO_BELOW_LOGO */
+# endif /* CONFIG_LCD_INFO */
 #endif /* CONFIG_MPC823 */
-#endif /* LCD_INFO_BELOW_LOGO */
-#endif /* LCD_INFO */
 
-#if defined(CONFIG_LCD_LOGO) && !defined(LCD_INFO_BELOW_LOGO)
+#if defined(CONFIG_LCD_LOGO) && !defined(CONFIG_LCD_INFO_BELOW_LOGO)
 	return ((void *)((ulong)lcd_base + BMP_LOGO_HEIGHT * lcd_line_length));
 #else
 	return ((void *)lcd_base);
-#endif /* CONFIG_LCD_LOGO */
+#endif /* CONFIG_LCD_LOGO && !CONFIG_LCD_INFO_BELOW_LOGO */
 }
 
 /************************************************************************/

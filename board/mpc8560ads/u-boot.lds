@@ -73,7 +73,6 @@ SECTIONS
     cpu/mpc85xx/ether_fcc.o (.text)
     cpu/mpc85xx/cpu_init.o (.text)
     cpu/mpc85xx/cpu.o (.text)
-    cpu/mpc85xx/tsec.o (.text)
     cpu/mpc85xx/speed.o (.text)
     cpu/mpc85xx/i2c.o (.text)
     cpu/mpc85xx/spd_sdram.o (.text)
@@ -92,6 +91,7 @@ SECTIONS
     *(.rodata)
     *(.rodata1)
     *(.rodata.str1.4)
+    *(.eh_frame)
   }
   .fini      : { *(.fini)    } =0
   .ctors     : { *(.ctors)   }
@@ -124,10 +124,12 @@ SECTIONS
   _edata  =  .;
   PROVIDE (edata = .);
 
+  . = .;
   __u_boot_cmd_start = .;
   .u_boot_cmd : { *(.u_boot_cmd) }
   __u_boot_cmd_end = .;
 
+  . = .;
   __start___ex_table = .;
   __ex_table : { *(__ex_table) }
   __stop___ex_table = .;

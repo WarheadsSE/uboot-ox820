@@ -585,15 +585,15 @@ void get_pcbrev_var(unsigned char *pcbrev, unsigned char *var)
 
 int checkboard (void)
 {
-	unsigned char s[50];
+	char s[50];
 	unsigned char bc, var;
 	int i;
 	backup_t *b = (backup_t *) s;
 
 	puts ("Board: ");
 	get_pcbrev_var(&bc,&var);
-	i = getenv_r ("serial#", s, 32);
-	if ((i == 0) || strncmp (s, BOARD_NAME,sizeof(BOARD_NAME))) {
+	i = getenv_r ("serial#", (char *)s, 32);
+	if ((i == 0) || strncmp ((char *)s, BOARD_NAME,sizeof(BOARD_NAME))) {
 		get_backup_values (b);
 		if (strncmp (b->signature, "MPL\0", 4) != 0) {
 			puts ("### No HW ID - assuming " BOARD_NAME);
@@ -728,15 +728,15 @@ int last_stage_init (void)
 {
 	unsigned long stop;
 	struct rtc_time newtm;
-	unsigned char *s;
+	char *s;
 	mem_test_reloc();
 	/* write correct LED configuration */
-	if (miiphy_write (0x1, 0x14, 0x2402) != 0) {
+	if (miiphy_write("ppc_4xx_eth0", 0x1, 0x14, 0x2402) != 0) {
 		printf ("Error writing to the PHY\n");
 	}
 	/* since LED/CFG2 is not connected on the -2,
 	 * write to correct capability information */
-	if (miiphy_write (0x1, 0x4, 0x01E1) != 0) {
+	if (miiphy_write("ppc_4xx_eth0", 0x1, 0x4, 0x01E1) != 0) {
 		printf ("Error writing to the PHY\n");
 	}
 	print_mip405_rev ();

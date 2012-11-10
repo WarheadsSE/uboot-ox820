@@ -314,7 +314,7 @@
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		16384	/* For IBM 405 CPUs, older 405 ppc's	*/
+#define CFG_DCACHE_SIZE		16384	/* For AMCC 405 CPUs, older 405 ppc's	*/
 					/* have only 8kB, 16kB is save here	*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
@@ -362,7 +362,7 @@
 #define CFG_LCD_SMALL_MEM       0xF1400000  /* Epson S1D13704 Mem Base Address  */
 #define CFG_LCD_SMALL_REG       0xF140FFE0  /* Epson S1D13704 Reg Base Address  */
 
-#define CFG_LCD_LOGO_MAX_SIZE   (1024*1024)
+#define CFG_VIDEO_LOGO_MAX_SIZE (1 << 20)
 
 /*-----------------------------------------------------------------------
  * FPGA stuff

@@ -79,12 +79,6 @@ int board_early_init_f (void)
 
 /* ------------------------------------------------------------------------- */
 
-int misc_init_f (void)
-{
-	return 0;  /* dummy implementation */
-}
-
-
 int misc_init_r (void)
 {
 	DECLARE_GLOBAL_DATA_PTR;
@@ -132,11 +126,6 @@ int checkboard (void)
 	}
 	*led_reg = 0x40;
 
-	/*
-	 * Disable sleep mode in LXT971
-	 */
-	lxt971_no_sleep();
-
 	return 0;
 }
 
@@ -159,10 +148,13 @@ long int initdram (int board_type)
 
 /* ------------------------------------------------------------------------- */
 
-int testdram (void)
+void reset_phy(void)
 {
-	/* TODO: XXX XXX XXX */
-	printf ("test: 16 MB - ok\n");
+#ifdef CONFIG_LXT971_NO_SLEEP
 
-	return (0);
+	/*
+	 * Disable sleep mode in LXT971
+	 */
+	lxt971_no_sleep();
+#endif
 }

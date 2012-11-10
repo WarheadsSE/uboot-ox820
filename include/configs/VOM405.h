@@ -52,9 +52,13 @@
 
 #define CFG_LOADS_BAUD_CHANGE	1	/* allow baudrate change	*/
 
+#define CONFIG_NET_MULTI	1
+#undef  CONFIG_HAS_ETH1
+
 #define CONFIG_MII		1	/* MII PHY management		*/
 #define CONFIG_PHY_ADDR		0	/* PHY address			*/
 #define CONFIG_LXT971_NO_SLEEP  1       /* disable sleep mode in LXT971 */
+#define CONFIG_RESET_PHY_R      1       /* use reset_phy() to disable phy sleep mode */
 
 #define CONFIG_BOOTP_MASK	(CONFIG_BOOTP_DEFAULT | \
 				 CONFIG_BOOTP_DNS | \
@@ -237,7 +241,7 @@
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		16384	/* For IBM 405 CPUs, older 405 ppc's	*/
+#define CFG_DCACHE_SIZE		16384	/* For AMCC 405 CPUs, older 405 ppc's	*/
 					/* have only 8kB, 16kB is save here	*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)

@@ -23,10 +23,18 @@
 
 #include <common.h>
 #include <command.h>
+#include <asm/byteorder.h>
 
-/* TODO
- */
+extern image_header_t header;	/* common/cmd_bootm.c */
+
 void do_bootm_linux(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 		ulong addr, ulong *len_ptr, int   verify)
 {
+	image_header_t *hdr = &header;
+	void (*kernel)(void) = (void (*)(void))ntohl (hdr->ih_ep);
+
+	/* For now we assume the Microtronix linux ... which only
+	 * needs to be called ;-)
+	 */
+	kernel ();
 }

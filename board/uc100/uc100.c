@@ -28,7 +28,10 @@
 #include <common.h>
 #include <mpc8xx.h>
 #include <i2c.h>
+#include <miiphy.h>
 
+int fec8xx_miiphy_write(char *devname, unsigned char  addr,
+		unsigned char  reg, unsigned short value);
 
 /*********************************************************************/
 /* UPMA Pre Initilization Table by WV (Miron MT48LC16M16A2-7E B)     */
@@ -146,7 +149,7 @@ int board_switch(void)
  */
 int checkboard (void)
 {
-	unsigned char str[64];
+	char str[64];
 	int i = getenv_r ("serial#", str, sizeof(str));
 
 	puts ("Board: ");
@@ -251,6 +254,17 @@ int misc_init_r (void)
 	val = i2c_reg_read (CFG_I2C_RTC_ADDR, 0x0D);
 	val |= 0x80;
 	i2c_reg_write (CFG_I2C_RTC_ADDR, 0x0D, val);
+
+	/*
+	 * Configure PHY to setup LED's correctly and use 100MBit, FD
+	 */
+	mii_init();
+
+	/* disable auto-negotiation, 100mbit, full-duplex */
+	fec8xx_miiphy_write(NULL, 0, PHY_BMCR, 0x2100);
+
+	/* set LED's to Link, Transmit, Receive           */
+	fec8xx_miiphy_write(NULL,  0, PHY_FCSCR, 0x4122);
 
 	return 0;
 }

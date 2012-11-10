@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2001
+ * (C) Copyright 2001-2005
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -53,6 +53,8 @@
 #define CONFIG_LCD		1	/* use LCD controller ...	*/
 #define CONFIG_HLD1045		1	/* ... with a HLD1045 display	*/
 
+#define CONFIG_LCD_LOGO		1	/* print our logo on the LCD	*/
+#define CONFIG_LCD_INFO		1	/* ... and some board info	*/
 #define	CONFIG_SPLASH_SCREEN		/* ... with splashscreen support*/
 
 #define CONFIG_SERIAL_MULTI	1
@@ -176,15 +178,17 @@
 
 #define CONFIG_COMMANDS	      ( CONFIG_CMD_DFL	| \
 				CFG_CMD_ASKENV	| \
-				CFG_CMD_DHCP	| \
+				CFG_CMD_BMP	| \
+				CFG_CMD_BSP	| \
 				CFG_CMD_DATE	| \
+				CFG_CMD_DHCP	| \
+				CFG_CMD_EEPROM	| \
 				CFG_CMD_FAT	| \
 				CFG_CMD_I2C	| \
-				CFG_CMD_EEPROM	| \
 				CFG_CMD_IDE	| \
-				CFG_CMD_BSP	| \
-				CFG_CMD_BMP	| \
-				CFG_CMD_POST_DIAG )
+				CFG_CMD_NFS	| \
+				CFG_CMD_POST_DIAG | \
+				CFG_CMD_SNTP	)
 #define CONFIG_MAC_PARTITION
 #define CONFIG_DOS_PARTITION
 

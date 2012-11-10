@@ -39,7 +39,7 @@ static unsigned long read_p15_c1 (void)
 	unsigned long value;
 
 	__asm__ __volatile__(
-		"mrc     p15, 0, %0, c1, c0, 0   @ read control reg\n"
+		"mrc	p15, 0, %0, c1, c0, 0   @ read control reg\n"
 		: "=r" (value)
 		:
 		: "memory");
@@ -57,7 +57,7 @@ static void write_p15_c1 (unsigned long value)
 	printf ("write %08lx to p15/c1\n", value);
 #endif
 	__asm__ __volatile__(
-		"mcr     p15, 0, %0, c1, c0, 0   @ write it back\n"
+		"mcr	p15, 0, %0, c1, c0, 0   @ write it back\n"
 		:
 		: "r" (value)
 		: "memory");
@@ -73,16 +73,17 @@ static void cp_delay (void)
 	for (i = 0; i < 100; i++);
 }
 
-/* See also ARM Ref. Man. */
+/* See also ARM920T    Technical reference Manual */
 #define C1_MMU		(1<<0)		/* mmu off/on */
 #define C1_ALIGN	(1<<1)		/* alignment faults off/on */
 #define C1_DC		(1<<2)		/* dcache off/on */
-#define C1_BIG_ENDIAN	(1<<7)	/* big endian off/on */
+
+#define C1_BIG_ENDIAN	(1<<7)		/* big endian off/on */
 #define C1_SYS_PROT	(1<<8)		/* system protection */
 #define C1_ROM_PROT	(1<<9)		/* ROM protection */
 #define C1_IC		(1<<12)		/* icache off/on */
-#define C1_HIGH_VECTORS	(1<<13)	/* location of vectors: low/high addresses */
-#define RESERVED_1	(0xf << 3)	/* must be 111b for R/W */
+#define C1_HIGH_VECTORS	(1<<13)		/* location of vectors: low/high addresses */
+
 
 int cpu_init (void)
 {
@@ -119,13 +120,12 @@ int cleanup_before_linux (void)
 	/* flush I/D-cache */
 	i = 0;
 	asm ("mcr p15, 0, %0, c7, c7, 0": :"r" (i));
+
 	return (0);
 }
 
 int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-	extern void reset_cpu (ulong addr);
-
 	disable_interrupts ();
 	reset_cpu (0);
 	/*NOTREACHED*/
@@ -136,7 +136,7 @@ void icache_enable (void)
 {
 	ulong reg;
 
-	reg = read_p15_c1 ();
+	reg = read_p15_c1 ();		/* get control reg. */
 	cp_delay ();
 	write_p15_c1 (reg | C1_IC);
 }

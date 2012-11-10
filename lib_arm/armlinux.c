@@ -167,7 +167,7 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 			do_reset (cmdtp, flag, argc, argv);
 		}
 
-#if defined(CONFIG_B2) || defined(CONFIG_EVB4510)
+#if defined(CONFIG_B2) || defined(CONFIG_EVB4510) || defined(CONFIG_ARMADILLO)
 		/*
 		 *we need to copy the ramdisk to SRAM to let Linux boot
 		 */
@@ -376,6 +376,38 @@ static void setup_videolfb_tag (gd_t *gd)
 	params = tag_next (params);
 }
 #endif /* CONFIG_VFD || CONFIG_LCD */
+
+#ifdef CONFIG_SERIAL_TAG
+void setup_serial_tag (struct tag **tmp)
+{
+	struct tag *params = *tmp;
+	struct tag_serialnr serialnr;
+	void get_board_serial(struct tag_serialnr *serialnr);
+
+	get_board_serial(&serialnr);
+	params->hdr.tag = ATAG_SERIAL;
+	params->hdr.size = tag_size (tag_serialnr);
+	params->u.serialnr.low = serialnr.low;
+	params->u.serialnr.high= serialnr.high;
+	params = tag_next (params);
+	*tmp = params;
+}
+#endif
+
+#ifdef CONFIG_REVISION_TAG
+void setup_revision_tag(struct tag **in_params)
+{
+	u32 rev = 0;
+	u32 get_board_rev(void);
+
+	rev = get_board_rev();
+	params->hdr.tag = ATAG_REVISION;
+	params->hdr.size = tag_size (tag_revision);
+	params->u.revision.rev = rev;
+	params = tag_next (params);
+}
+#endif  /* CONFIG_REVISION_TAG */
+
 
 static void setup_end_tag (bd_t *bd)
 {

@@ -31,8 +31,6 @@
 #include <asm/proc-armv/ptrace.h>
 #include <asm/hardware.h>
 
-extern void reset_cpu(ulong addr);
-
 #ifndef CONFIG_NETARM
 /* we always count down the max. */
 #define TIMER_LOAD_VAL 0xffff
@@ -182,7 +180,7 @@ void do_fiq (struct pt_regs *pt_regs)
 
 void do_irq (struct pt_regs *pt_regs)
 {
-#if defined(CONFIG_IMPA7) || defined(CONFIG_EP7312) || defined(CONFIG_NETARM)
+#if defined(CONFIG_IMPA7) || defined(CONFIG_EP7312) || defined(CONFIG_NETARM) || defined(CONFIG_ARMADILLO)
 	printf ("interrupt request\n");
 	show_regs (pt_regs);
 	bad_mode ();
@@ -195,6 +193,8 @@ void do_irq (struct pt_regs *pt_regs)
 		/* clear pending interrupt */
 		PUT_REG( REG_INTPEND, (1<<(pending>>2)));
 	}
+#elif defined(CONFIG_INTEGRATOR) && defined(CONFIG_ARCH_INTEGRATOR)
+	/* No do_irq() for IntegratorAP/CM720T as yet */
 #else
 #error do_irq() not defined for this CPU type
 #endif
@@ -218,6 +218,10 @@ static void timer_isr( void *data) {
 }
 #endif
 
+#if defined(CONFIG_INTEGRATOR) && defined(CONFIG_ARCH_INTEGRATOR)
+	/* Use IntegratorAP routines in board/integratorap.c */
+#else
+
 static ulong timestamp;
 static ulong lastdec;
 
@@ -235,7 +239,7 @@ int interrupt_init (void)
 
 	/* set timer 2 counter */
 	lastdec = TIMER_LOAD_VAL;
-#elif defined(CONFIG_IMPA7) || defined(CONFIG_EP7312)
+#elif defined(CONFIG_IMPA7) || defined(CONFIG_EP7312) || defined(CONFIG_ARMADILLO)
 	/* disable all interrupts */
 	IO_INTMR1 = 0;
 
@@ -298,12 +302,14 @@ int interrupt_init (void)
 	return (0);
 }
 
+#endif /* ! IntegratorAP */
+
 /*
  * timer without interrupts
  */
 
 
-#if defined(CONFIG_IMPA7) || defined(CONFIG_EP7312) || defined(CONFIG_NETARM)
+#if defined(CONFIG_IMPA7) || defined(CONFIG_EP7312) || defined(CONFIG_NETARM) || defined(CONFIG_ARMADILLO)
 
 void reset_timer (void)
 {
@@ -360,15 +366,24 @@ ulong get_timer_masked (void)
 void udelay_masked (unsigned long usec)
 {
 	ulong tmo;
+	ulong endtime;
+	signed long diff;
 
-	tmo = usec / 1000;
-	tmo *= CFG_HZ;
-	tmo /= 1000;
+	if (usec >= 1000) {
+		tmo = usec / 1000;
+		tmo *= CFG_HZ;
+		tmo /= 1000;
+	} else {
+		tmo = usec * CFG_HZ;
+		tmo /= (1000*1000);
+	}
 
-	reset_timer_masked ();
+	endtime = get_timer_masked () + tmo;
 
-	while (get_timer_masked () < tmo)
-		/*NOP*/;
+	do {
+		ulong now = get_timer_masked ();
+		diff = endtime - now;
+	} while (diff >= 0);
 }
 
 #elif defined(CONFIG_S3C4510B)
@@ -391,6 +406,8 @@ void udelay (unsigned long usec)
 
 }
 
+#elif defined(CONFIG_INTEGRATOR) && defined(CONFIG_ARCH_INTEGRATOR)
+	/* No timer routines for IntegratorAP/CM720T as yet */
 #else
 #error Timer routines not defined for this CPU type
 #endif

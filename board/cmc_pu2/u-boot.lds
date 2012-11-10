@@ -32,7 +32,7 @@ SECTIONS
 	. = ALIGN(4);
 	.text      :
 	{
-	  cpu/at91rm9200/start.o	(.text)
+	  cpu/arm920t/start.o	(.text)
 	  *(.text)
 	}
 
@@ -45,6 +45,7 @@ SECTIONS
 	. = ALIGN(4);
 	.got : { *(.got) }
 
+	. = .;
 	__u_boot_cmd_start = .;
 	.u_boot_cmd : { *(.u_boot_cmd) }
 	__u_boot_cmd_end = .;

@@ -26,7 +26,7 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -36,11 +36,10 @@
  */
 
 #include <common.h>
-#include <arm925t.h>
-
+#include <arm926els.h>
 #include <asm/proc-armv/ptrace.h>
 
-extern void reset_cpu(ulong addr);
+//extern void reset_cpu(ulong addr);
 
 #ifdef CONFIG_OXNAS
 #define TIMER_LOAD_VAL 0xffffUL
@@ -51,9 +50,6 @@ extern void reset_cpu(ulong addr);
 /* macro to read the 32 bit timer */
 #ifdef CONFIG_OMAP
 #define READ_TIMER (*(volatile ulong *)(CFG_TIMERBASE+8))
-#endif
-#ifdef CONFIG_INTEGRATOR
-#define READ_TIMER (*(volatile ulong *)(CFG_TIMERBASE+4))
 #endif
 #ifdef CONFIG_VERSATILE
 #define READ_TIMER (*(volatile ulong *)(CFG_TIMERBASE+4))
@@ -125,15 +121,15 @@ void show_regs (struct pt_regs *regs)
 
 	flags = condition_codes (regs);
 
-	printf ("pc : [<%08lx>]    lr : [<%08lx>]\n"
-		"sp : %08lx  ip : %08lx  fp : %08lx\n",
+	printf ("pc : [<%08lx>]	   lr : [<%08lx>]\n"
+		"sp : %08lx  ip : %08lx	 fp : %08lx\n",
 		instruction_pointer (regs),
 		regs->ARM_lr, regs->ARM_sp, regs->ARM_ip, regs->ARM_fp);
-	printf ("r10: %08lx  r9 : %08lx  r8 : %08lx\n",
+	printf ("r10: %08lx  r9 : %08lx	 r8 : %08lx\n",
 		regs->ARM_r10, regs->ARM_r9, regs->ARM_r8);
-	printf ("r7 : %08lx  r6 : %08lx  r5 : %08lx  r4 : %08lx\n",
+	printf ("r7 : %08lx  r6 : %08lx	 r5 : %08lx  r4 : %08lx\n",
 		regs->ARM_r7, regs->ARM_r6, regs->ARM_r5, regs->ARM_r4);
-	printf ("r3 : %08lx  r2 : %08lx  r1 : %08lx  r0 : %08lx\n",
+	printf ("r3 : %08lx  r2 : %08lx	 r1 : %08lx  r0 : %08lx\n",
 		regs->ARM_r3, regs->ARM_r2, regs->ARM_r1, regs->ARM_r0);
 	printf ("Flags: %c%c%c%c",
 		flags & CC_N_BIT ? 'N' : 'n',
@@ -195,6 +191,12 @@ void do_irq (struct pt_regs *pt_regs)
 	bad_mode ();
 }
 
+#ifdef CONFIG_INTEGRATOR
+
+	/* Timer functionality supplied by Integrator board (AP or CP) */
+
+#else
+
 static ulong timestamp;
 static ulong lastdec;
 
@@ -209,12 +211,7 @@ int interrupt_init (void)
 	val = MPUTIM_ST | MPUTIM_AR | MPUTIM_CLOCK_ENABLE | (CFG_PVT << MPUTIM_PTV_BIT);
 	*((int32_t *) (CFG_TIMERBASE + CNTL_TIMER)) = val;
 #endif	/* CONFIG_OMAP */
-#ifdef CONFIG_INTEGRATOR
-	/* Load timer with initial value */
-	*(volatile ulong *)(CFG_TIMERBASE + 0) = TIMER_LOAD_VAL;
-	/* Set timer to be enabled, free-running, no interrupts, 256 divider */
-	*(volatile ulong *)(CFG_TIMERBASE + 8) = 0x8C;
-#endif	/* CONFIG_INTEGRATOR */
+
 #ifdef CONFIG_VERSATILE
 	*(volatile ulong *)(CFG_TIMERBASE + 0) = CFG_TIMER_RELOAD;	/* TimerLoad */
 	*(volatile ulong *)(CFG_TIMERBASE + 4) = CFG_TIMER_RELOAD;	/* TimerValue */
@@ -261,17 +258,17 @@ void udelay (unsigned long usec)
 {
 	ulong tmo, tmp;
 
-	if(usec >= 1000){               /* if "big" number, spread normalization to seconds */
-		tmo = usec / 1000;      /* start to normalize for usec to ticks per sec */
-		tmo *= CFG_HZ;          /* find number of "ticks" to wait to achieve target */
-		tmo /= 1000;            /* finish normalize. */
-	}else{                          /* else small number, don't kill it prior to HZ multiply */
+	if(usec >= 1000){		/* if "big" number, spread normalization to seconds */
+		tmo = usec / 1000;	/* start to normalize for usec to ticks per sec */
+		tmo *= CFG_HZ;		/* find number of "ticks" to wait to achieve target */
+		tmo /= 1000;		/* finish normalize. */
+	}else{				/* else small number, don't kill it prior to HZ multiply */
 		tmo = usec * CFG_HZ;
 		tmo /= (1000*1000);
 	}
 
 	tmp = get_timer (0);		/* get current timestamp */
-	if( (tmo + tmp + 1) < tmp ) 	/* if setting this fordward will roll time stamp */
+	if( (tmo + tmp + 1) < tmp )	/* if setting this fordward will roll time stamp */
 		reset_timer_masked ();	/* reset "advancing" timestamp to 0, set lastdec value */
 	else
 		tmo += tmp;		/* else, set advancing stamp wake up time */
@@ -284,7 +281,7 @@ void reset_timer_masked (void)
 {
 	/* reset time */
 	lastdec = READ_TIMER;  /* capure current decrementer value time */
-	timestamp = 0;         /* start "advancing" time stamp from 0 */
+	timestamp = 0;	       /* start "advancing" time stamp from 0 */
 }
 
 ulong get_timer_masked (void)
@@ -311,20 +308,24 @@ ulong get_timer_masked (void)
 void udelay_masked (unsigned long usec)
 {
 	ulong tmo;
+	ulong endtime;
+	signed long diff;
 
-	if(usec >= 1000){               /* if "big" number, spread normalization to seconds */
-		tmo = usec / 1000;      /* start to normalize for usec to ticks per sec */
-		tmo *= CFG_HZ;          /* find number of "ticks" to wait to achieve target */
-		tmo /= 1000;            /* finish normalize. */
-	}else{                          /* else small number, don't kill it prior to HZ multiply */
+	if (usec >= 1000) {		/* if "big" number, spread normalization to seconds */
+		tmo = usec / 1000;	/* start to normalize for usec to ticks per sec */
+		tmo *= CFG_HZ;		/* find number of "ticks" to wait to achieve target */
+		tmo /= 1000;		/* finish normalize. */
+	} else {			/* else small number, don't kill it prior to HZ multiply */
 		tmo = usec * CFG_HZ;
 		tmo /= (1000*1000);
 	}
 
-	reset_timer_masked ();	/* set "advancing" timestamp to 0, set lastdec vaule */
+	endtime = get_timer_masked () + tmo;
 
-	while (get_timer_masked () < tmo) /* wait for time stamp to overtake tick number.*/
-		/*NOP*/;
+	do {
+		ulong now = get_timer_masked ();
+		diff = endtime - now;
+	} while (diff >= 0);
 }
 
 /*
@@ -347,3 +348,5 @@ ulong get_tbclk (void)
 	tbclk = CFG_HZ;
 	return tbclk;
 }
+
+#endif /* CONFIG_INTEGRATOR */

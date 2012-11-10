@@ -157,7 +157,7 @@ int dram_init(void)
 }
 
 /* OX820 code */
-int reset_cpu(void)
+void reset_cpu(ulong addr)
 {
 	printf("Resetting...\n");
 

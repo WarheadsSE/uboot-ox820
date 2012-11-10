@@ -199,7 +199,7 @@ extern int transfer_pic(unsigned char, unsigned char *, int, int);
 #endif
 extern int flash_sect_erase(ulong, ulong);
 extern int flash_sect_protect (int, ulong, ulong);
-extern int flash_write (uchar *, ulong, ulong);
+extern int flash_write (char *, ulong, ulong);
 /* change char* to void* to shutup the compiler */
 extern int i2c_write_multiple (uchar, uint, int, void *, int);
 extern int i2c_read_multiple (uchar, uint, int, void *, int);
@@ -296,7 +296,7 @@ au_check_header_valid(int idx, long nbytes)
 	/* recycle checksum */
 	checksum = ntohl(hdr->ih_size);
 	/* for kernel and app the image header must also fit into flash */
-	if (idx != IDX_DISK)
+	if ((idx != IDX_DISK) && (idx != IDX_FIRMWARE))
 		checksum += sizeof(*hdr);
 	/* check the size does not exceed space in flash. HUSH scripts */
 	/* all have ausize[] set to 0 */
@@ -415,6 +415,13 @@ au_update_eeprom(int idx)
 	image_header_t *hdr;
 	int off;
 	uint32_t val;
+
+	/* special case for prepare.img */
+	if (idx == IDX_PREPARE) {
+		/* enable the power switch */
+		*CPLD_VFD_BK &= ~POWER_OFF;
+		return 0;
+	}
 
 	hdr = (image_header_t *)LOAD_ADDR;
 	/* write the time field into EEPROM */

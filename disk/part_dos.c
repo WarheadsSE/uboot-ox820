@@ -38,7 +38,8 @@
 #if ((CONFIG_COMMANDS & CFG_CMD_IDE)	|| \
      (CONFIG_COMMANDS & CFG_CMD_SCSI)	|| \
      (CONFIG_COMMANDS & CFG_CMD_USB)	|| \
-     (CONFIG_SYSTEMACE)) && defined(CONFIG_DOS_PARTITION)
+     defined(CONFIG_MMC) || \
+     defined(CONFIG_SYSTEMACE) ) && defined(CONFIG_DOS_PARTITION)
 
 /* Convert char[4] in little endian format to the host format integer
  */
@@ -74,7 +75,7 @@ static int test_block_type(unsigned char *buffer)
 	    (buffer[DOS_PART_MAGIC_OFFSET + 1] != 0xaa) ) {
 		return (-1);
 	} /* no DOS Signature at all */
-	if(strncmp(&buffer[DOS_PBR_FSTYPE_OFFSET],"FAT",3)==0)
+	if(strncmp((char *)&buffer[DOS_PBR_FSTYPE_OFFSET],"FAT",3)==0)
 		return DOS_PBR; /* is PBR */
 	return DOS_MBR;	    /* Is MBR */
 }
@@ -194,23 +195,23 @@ static int get_partition_info_extended (block_dev_desc_t *dev_desc, int ext_part
 			switch(dev_desc->if_type) {
 				case IF_TYPE_IDE:
 				case IF_TYPE_ATAPI:
-					sprintf (info->name, "hd%c%d\n", 'a' + dev_desc->dev, part_num);
+					sprintf ((char *)info->name, "hd%c%d\n", 'a' + dev_desc->dev, part_num);
 					break;
 				case IF_TYPE_SCSI:
-					sprintf (info->name, "sd%c%d\n", 'a' + dev_desc->dev, part_num);
+					sprintf ((char *)info->name, "sd%c%d\n", 'a' + dev_desc->dev, part_num);
 					break;
 				case IF_TYPE_USB:
-					sprintf (info->name, "usbd%c%d\n", 'a' + dev_desc->dev, part_num);
+					sprintf ((char *)info->name, "usbd%c%d\n", 'a' + dev_desc->dev, part_num);
 					break;
 				case IF_TYPE_DOC:
-					sprintf (info->name, "docd%c%d\n", 'a' + dev_desc->dev, part_num);
+					sprintf ((char *)info->name, "docd%c%d\n", 'a' + dev_desc->dev, part_num);
 					break;
 				default:
-					sprintf (info->name, "xx%c%d\n", 'a' + dev_desc->dev, part_num);
+					sprintf ((char *)info->name, "xx%c%d\n", 'a' + dev_desc->dev, part_num);
 					break;
 			}
 			/* sprintf(info->type, "%d, pt->sys_ind); */
-			sprintf (info->type, "U-Boot");
+			sprintf ((char *)info->type, "U-Boot");
 			return 0;
 		}
 

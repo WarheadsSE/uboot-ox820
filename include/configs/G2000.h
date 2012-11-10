@@ -54,19 +54,19 @@
 
 #define	CONFIG_EXTRA_ENV_SETTINGS					\
 	"nfsargs=setenv bootargs root=/dev/nfs rw "			\
-		"nfsroot=$(serverip):$(rootpath)\0"			\
+		"nfsroot=${serverip}:${rootpath}\0"			\
 	"ramargs=setenv bootargs root=/dev/ram rw\0"			\
-	"addip=setenv bootargs $(bootargs) "				\
-		"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask)"	\
-		":$(hostname):$(netdev):off\0"				\
-	"addmisc=setenv bootargs $(bootargs) "				\
-		"console=ttyS0,$(baudrate) "				\
+	"addip=setenv bootargs ${bootargs} "				\
+		"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}"	\
+		":${hostname}:${netdev}:off\0"				\
+	"addmisc=setenv bootargs ${bootargs} "				\
+		"console=ttyS0,${baudrate} "				\
 		"panic=1\0"						\
 	"flash_nfs=run nfsargs addip addmisc;"				\
-		"bootm $(kernel_addr)\0"				\
+		"bootm ${kernel_addr}\0"				\
 	"flash_self=run ramargs addip addmisc;"				\
-		"bootm $(kernel_addr) $(ramdisk_addr)\0"		\
-	"net_nfs=tftp 200000 $(bootfile);"				\
+		"bootm ${kernel_addr} ${ramdisk_addr}\0"		\
+	"net_nfs=tftp 200000 ${bootfile};"				\
 		"run nfsargs addip addmisc;bootm\0"			\
 	"rootpath=/opt/eldk/ppc_4xx\0"					\
 	"bootfile=/tftpboot/g2000/pImage\0"				\
@@ -321,7 +321,7 @@
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		16384	/* For IBM 405 CPUs, older 405 ppc's	*/
+#define CFG_DCACHE_SIZE		16384	/* For AMCC 405 CPUs, older 405 ppc's	*/
 					/* have only 8kB, 16kB is save here	*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)

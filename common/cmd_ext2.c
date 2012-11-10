@@ -41,6 +41,9 @@
 #include <linux/ctype.h>
 #include <asm/byteorder.h>
 #include <ext2fs.h>
+#if ((CONFIG_COMMANDS & CFG_CMD_USB) && defined(CONFIG_USB_STORAGE))
+#include <usb.h>
+#endif
 
 #ifndef CONFIG_DOS_PARTITION
 #error DOS partition support must be selected
@@ -149,7 +152,7 @@ int do_ext2ls (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 U_BOOT_CMD(
 	ext2ls,	4,	1,	do_ext2ls,
-	"ext2ls- list files in a directory (default /)\n",
+	"ext2ls  - list files in a directory (default /)\n",
 	"<interface> <dev[:part]> [directory]\n"
 	"    - list files from 'dev' on 'interface' in a 'directory'\n"
 );
@@ -161,7 +164,7 @@ int do_ext2load (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	char *filename = NULL;
 	char *ep;
-	int dev, part = 0;
+	int dev, part = 1;
 	ulong addr = 0, part_length, filelen;
 	disk_partition_t info;
 	block_dev_desc_t *dev_desc = NULL;
@@ -228,7 +231,7 @@ int do_ext2load (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			return(1);
 		}
 
-		if (strncmp(info.type, BOOT_PART_TYPE, sizeof(info.type)) != 0) {
+		if (strncmp((char *)info.type, BOOT_PART_TYPE, sizeof(info.type)) != 0) {
 			printf ("\n** Invalid partition type \"%.32s\""
 				" (expect \"" BOOT_PART_TYPE "\")\n",
 				info.type);

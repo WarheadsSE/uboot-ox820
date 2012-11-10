@@ -31,6 +31,7 @@
 #include <net.h>
 #endif
 #include <fpga.h>
+#include <malloc.h>
 
 #if 0
 #define	FPGA_DEBUG
@@ -52,7 +53,136 @@ static int fpga_get_op (char *opstr);
 #define FPGA_NONE   -1
 #define FPGA_INFO   0
 #define FPGA_LOAD   1
+#define FPGA_LOADB  2
 #define FPGA_DUMP   3
+
+/* Convert bitstream data and load into the fpga */
+int fpga_loadbitstream(unsigned long dev, char* fpgadata, size_t size)
+{
+	unsigned int length;
+	unsigned char* swapdata;
+	unsigned int swapsize;
+	char buffer[80];
+	unsigned char *ptr;
+	unsigned char *dataptr;
+	unsigned char data;
+	unsigned int i;
+	int rc;
+
+	dataptr = (unsigned char *)fpgadata;
+
+#if CFG_FPGA_XILINX
+	/* skip the first bytes of the bitsteam, their meaning is unknown */
+	length = (*dataptr << 8) + *(dataptr+1);
+	dataptr+=2;
+	dataptr+=length;
+
+	/* get design name (identifier, length, string) */
+	length = (*dataptr << 8) + *(dataptr+1);
+	dataptr+=2;
+	if (*dataptr++ != 0x61) {
+		PRINTF ("%s: Design name identifier not recognized in bitstream\n",
+			__FUNCTION__ );
+		return FPGA_FAIL;
+	}
+
+	length = (*dataptr << 8) + *(dataptr+1);
+	dataptr+=2;
+	for(i=0;i<length;i++)
+		buffer[i]=*dataptr++;
+
+	printf("  design filename = \"%s\"\n", buffer);
+
+	/* get part number (identifier, length, string) */
+	if (*dataptr++ != 0x62) {
+		printf("%s: Part number identifier not recognized in bitstream\n",
+			__FUNCTION__ );
+		return FPGA_FAIL;
+	}
+
+	length = (*dataptr << 8) + *(dataptr+1);
+	dataptr+=2;
+	for(i=0;i<length;i++)
+		buffer[i]=*dataptr++;
+	printf("  part number = \"%s\"\n", buffer);
+
+	/* get date (identifier, length, string) */
+	if (*dataptr++ != 0x63) {
+		printf("%s: Date identifier not recognized in bitstream\n",
+		       __FUNCTION__);
+		return FPGA_FAIL;
+	}
+
+	length = (*dataptr << 8) + *(dataptr+1);
+	dataptr+=2;
+	for(i=0;i<length;i++)
+		buffer[i]=*dataptr++;
+	printf("  date = \"%s\"\n", buffer);
+
+	/* get time (identifier, length, string) */
+	if (*dataptr++ != 0x64) {
+		printf("%s: Time identifier not recognized in bitstream\n",__FUNCTION__);
+		return FPGA_FAIL;
+	}
+
+	length = (*dataptr << 8) + *(dataptr+1);
+	dataptr+=2;
+	for(i=0;i<length;i++)
+		buffer[i]=*dataptr++;
+	printf("  time = \"%s\"\n", buffer);
+
+	/* get fpga data length (identifier, length) */
+	if (*dataptr++ != 0x65) {
+		printf("%s: Data length identifier not recognized in bitstream\n",
+			__FUNCTION__);
+		return FPGA_FAIL;
+	}
+	swapsize = ((unsigned int) *dataptr     <<24) +
+	           ((unsigned int) *(dataptr+1) <<16) +
+	           ((unsigned int) *(dataptr+2) <<8 ) +
+	           ((unsigned int) *(dataptr+3)     ) ;
+	dataptr+=4;
+	printf("  bytes in bitstream = %d\n", swapsize);
+
+	/* check consistency of length obtained */
+	if (swapsize >= size) {
+		printf("%s: Could not find right length of data in bitstream\n",
+			__FUNCTION__);
+		return FPGA_FAIL;
+	}
+
+	/* allocate memory */
+	swapdata = (unsigned char *)malloc(swapsize);
+	if (swapdata == NULL) {
+		printf("%s: Could not allocate %d bytes memory !\n",
+			__FUNCTION__, swapsize);
+		return FPGA_FAIL;
+	}
+
+	/* read data into memory and swap bits */
+	ptr = swapdata;
+	for (i = 0; i < swapsize; i++) {
+		data = 0x00;
+		data |= (*dataptr & 0x01) << 7;
+		data |= (*dataptr & 0x02) << 5;
+		data |= (*dataptr & 0x04) << 3;
+		data |= (*dataptr & 0x08) << 1;
+		data |= (*dataptr & 0x10) >> 1;
+		data |= (*dataptr & 0x20) >> 3;
+		data |= (*dataptr & 0x40) >> 5;
+		data |= (*dataptr & 0x80) >> 7;
+		*ptr++ = data;
+		dataptr++;
+	}
+
+	rc = fpga_load(dev, swapdata, swapsize);
+	free(swapdata);
+	return rc;
+#else
+	printf("Bitstream support only for Xilinx devices\n");
+	return FPGA_FAIL;
+#endif
+}
 
 /* ------------------------------------------------------------------------- */
 /* command form:
@@ -81,26 +211,25 @@ int do_fpga (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 		data_size = simple_strtoul (argv[4], NULL, 16);
 	case 4:		/* fpga <op> <dev> <data> */
 		fpga_data = (void *) simple_strtoul (argv[3], NULL, 16);
-		PRINTF (__FUNCTION__ ": fpga_data = 0x%x\n",
-			(uint) fpga_data);
+		PRINTF ("%s: fpga_data = 0x%x\n", __FUNCTION__, (uint) fpga_data);
 	case 3:		/* fpga <op> <dev | data addr> */
 		dev = (int) simple_strtoul (argv[2], NULL, 16);
-		PRINTF (__FUNCTION__ ": device = %d\n", dev);
+		PRINTF ("%s: device = %d\n", __FUNCTION__, dev);
 		/* FIXME - this is a really weak test */
 		if ((argc == 3) && (dev > fpga_count ())) {	/* must be buffer ptr */
-			PRINTF (__FUNCTION__
-				": Assuming buffer pointer in arg 3\n");
+			PRINTF ("%s: Assuming buffer pointer in arg 3\n",
+				__FUNCTION__);
 			fpga_data = (void *) dev;
-			PRINTF (__FUNCTION__ ": fpga_data = 0x%x\n",
-				(uint) fpga_data);
+			PRINTF ("%s: fpga_data = 0x%x\n",
+				__FUNCTION__, (uint) fpga_data);
 			dev = FPGA_INVALID_DEVICE;	/* reset device num */
 		}
 	case 2:		/* fpga <op> */
 		op = (int) fpga_get_op (argv[1]);
 		break;
 	default:
-		PRINTF (__FUNCTION__ ": Too many or too few args (%d)\n",
-			argc);
+		PRINTF ("%s: Too many or too few args (%d)\n",
+			__FUNCTION__, argc);
 		op = FPGA_NONE;	/* force usage display */
 		break;
 	}
@@ -118,12 +247,16 @@ int do_fpga (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 		rc = fpga_load (dev, fpga_data, data_size);
 		break;
 
+	case FPGA_LOADB:
+		rc = fpga_loadbitstream(dev, fpga_data, data_size);
+		break;
+
 	case FPGA_DUMP:
 		rc = fpga_dump (dev, fpga_data, data_size);
 		break;
 
 	default:
-		printf ("Unknown operation.\n");
+		printf ("Unknown operation\n");
 		fpga_usage (cmdtp);
 		break;
 	}
@@ -145,6 +278,8 @@ static int fpga_get_op (char *opstr)
 
 	if (!strcmp ("info", opstr)) {
 		op = FPGA_INFO;
+	} else if (!strcmp ("loadb", opstr)) {
+		op = FPGA_LOADB;
 	} else if (!strcmp ("load", opstr)) {
 		op = FPGA_LOAD;
 	} else if (!strcmp ("dump", opstr)) {
@@ -161,7 +296,8 @@ U_BOOT_CMD (fpga, 6, 1, do_fpga,
 	    "fpga    - loadable FPGA image support\n",
 	    "fpga [operation type] [device number] [image address] [image size]\n"
 	    "fpga operations:\n"
-	    "\tinfo\tlist known device information.\n"
-	    "\tload\tLoad device from memory buffer.\n"
-	    "\tdump\tLoad device to memory buffer.\n");
+	    "\tinfo\tlist known device information\n"
+	    "\tload\tLoad device from memory buffer\n"
+	    "\tloadb\tLoad device from bitstream buffer (Xilinx devices only)\n"
+	    "\tdump\tLoad device to memory buffer\n");
 #endif /* CONFIG_FPGA && CONFIG_COMMANDS & CFG_CMD_FPGA */

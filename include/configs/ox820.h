@@ -123,7 +123,8 @@ extern volatile struct ehci_hcor *hcor;
 #define CONFIG_INITRD_TAG           1   /* allow initrd tag to be generated */
 
 /* May want to do some setup prior to relocation */
-#define CONFIG_INIT_CRITICAL
+#undef CONFIG_SKIP_LOWLEVEL_INIT
+#undef CONFIG_SKIP_RELOCATE_UBOOT
 
 /* ARM specific late initialisation */
 #define BOARD_LATE_INIT
@@ -447,7 +448,7 @@ extern volatile struct ehci_hcor *hcor;
 #define CFG_ENV_ADDR			((CFG_SRAM_BASE) + (ENVIRONMENT_OFFSET))
 #define ROM_LOADER_LOAD_START_SECTOR 64
 #define CFG_ENV_DISK_SECTOR 	((ROM_LOADER_LOAD_START_SECTOR) + SIZE_TO_SECTORS(ENVIRONMENT_OFFSET))
-#define ROM_LOADER_LOAD_REDUNDANT_START_SECTOR 57088
+#define ROM_LOADER_LOAD_REDUNDANT_START_SECTOR ((10*512)+ CFG_ENV_DISK_SECTOR )
 #define CFG_ENV_DISK_REDUNDANT_SECTOR ((ROM_LOADER_LOAD_REDUNDANT_START_SECTOR) + SIZE_TO_SECTORS(ENVIRONMENT_OFFSET))
 
 #else // ENV_ON_SATA

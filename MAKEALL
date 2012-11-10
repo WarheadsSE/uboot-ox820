@@ -25,8 +25,9 @@ LIST_5xx="	\
 #########################################################################
 
 LIST_5xxx="	\
-	icecube_5100	icecube_5200	EVAL5200	PM520		\
-	Total5100	Total5200	Total5200_Rev2	TQM5200_AA	\
+	cpci5200	icecube_5100	icecube_5200	EVAL5200	\
+	pf5200		PM520		Total5100	Total5200	\
+	Total5200_Rev2	TQM5200_auto	o2dnt				\
 "
 
 #########################################################################
@@ -60,16 +61,20 @@ LIST_8xx="	\
 #########################################################################
 
 LIST_4xx="	\
-	ADCIOP		AR405		ASH405		BUBINGA405EP	\
-	CANBT		CPCI405		CPCI4052	CPCI405AB	\
+	ADCIOP		AP1000		AR405		ASH405		\
+	bubinga		CANBT		CMS700		CPCI2DP		\
+	CPCI405		CPCI4052	CPCI405AB	CPCI405DT	\
 	CPCI440		CPCIISER4	CRAYL1		csb272		\
 	csb472		DASA_SIM	DP405		DU405		\
-	EBONY		ERIC		EXBITGEN	HUB405		\
-	JSE		MIP405		MIP405T		ML2		\
-	ml300		OCOTEA		OCRTC		ORSG		\
-	PCI405		PIP405		PLU405		PMC405		\
-	PPChameleonEVB	VOH405		W7OLMC		W7OLMG		\
-	WALNUT405	WUH405          XPEDITE1K			\
+	ebony		ERIC		EXBITGEN	G2000		\
+	HH405		HUB405		JSE		KAREF		\
+	luan		METROBOX	MIP405		MIP405T		\
+	ML2		ml300		ocotea		OCRTC		\
+	ORSG		p3p440		PCI405		PIP405		\
+	PLU405		PMC405	        PPChameleonEVB	sbc405		\
+	VOH405		VOM405          W7OLMC		W7OLMG		\
+	walnut		WUH405		XPEDITE1K	yellowstone	\
+	yosemite							\
 "
 
 #########################################################################
@@ -85,10 +90,11 @@ LIST_8220="	\
 #########################################################################
 
 LIST_824x="	\
-	A3000		BMW		CPC45		CU824		\
-	debris		eXalion		MOUSSE		MUSENKI		\
-	MVBLUE		OXC		PN62		Sandpoint8240	\
-	Sandpoint8245	SL8245		utx8245		sbc8240	\
+	A3000		barco		BMW		CPC45		\
+	CU824		debris		eXalion		HIDDEN_DRAGON	\
+	MOUSSE		MUSENKI		MVBLUE		OXC		\
+	PN62		Sandpoint8240	Sandpoint8245	sbc8240		\
+	SL8245		utx8245						\
 "
 
 #########################################################################
@@ -96,21 +102,33 @@ LIST_824x="	\
 #########################################################################
 
 LIST_8260="	\
-	atc		cogent_mpc8260	CPU86		ep8260		\
-	gw8260		hymod		IPHASE4539	ISPAN		\
-	MPC8260ADS	MPC8266ADS	MPC8272ADS	PM826		\
-	PM828		ppmc8260	RPXsuper	rsdproto	\
-	sacsng		sbc8260		SCM		TQM8260_AC	\
-	TQM8260_AD	TQM8260_AE	ZPC1900				\
+	atc		cogent_mpc8260	CPU86		CPU87		\
+	ep8248		ep8260		gw8260		hymod		\
+	IPHASE4539	ISPAN		MPC8260ADS	MPC8266ADS	\
+	MPC8272ADS	PM826		PM828		ppmc8260	\
+	Rattler8248	RPXsuper	rsdproto	sacsng		\
+	sbc8260		SCM		TQM8260_AC	TQM8260_AD	\
+	TQM8260_AE	ZPC1900						\
 "
+
+#########################################################################
+## MPC83xx Systems (includes 8349, etc.)
+#########################################################################
+
+LIST_83xx="	\
+	MPC8349ADS	TQM834x\
+"
+
 
 #########################################################################
 ## MPC85xx Systems (includes 8540, 8560 etc.)
 #########################################################################
 
 LIST_85xx="	\
-	MPC8540ADS	MPC8541CDS	MPC8555CDS	MPC8560ADS	\
-	sbc8540		sbc8560		stxgp3				\
+	MPC8540ADS	MPC8540EVAL	MPC8541CDS	MPC8548CDS	\
+	MPC8555CDS	MPC8560ADS	PM854		PM856		\
+	sbc8540		sbc8560		stxgp3		TQM8540		\
+	TQM8541		TQM8555		TQM8560				\
 "
 
 #########################################################################
@@ -126,11 +144,12 @@ LIST_7xx="	\
 	BAB7xx		CPCI750		ELPPC				\
 "
 
-LIST_ppc="${LIST_5xx}  ${LIST_5xxx} \
-	  ${LIST_8xx}  \
-	  ${LIST_824x} ${LIST_8260} \
-	  ${LIST_85xx}	\
-	  ${LIST_4xx}		    \
+LIST_ppc="${LIST_5xx}  ${LIST_5xxx}		\
+	  ${LIST_8xx}				\
+	  ${LIST_8220} ${LIST_824x} ${LIST_8260} \
+	  ${LIST_83xx}				\
+	  ${LIST_85xx}				\
+	  ${LIST_4xx}				\
 	  ${LIST_74xx} ${LIST_7xx}"
 
 #########################################################################
@@ -143,18 +162,39 @@ LIST_SA="assabet dnp1110 gcplus lart shannon"
 ## ARM7 Systems
 #########################################################################
 
-LIST_ARM7="B2 ep7312 evb4510 impa7 modnet50"
+LIST_ARM7="	\
+	armadillo	B2		ep7312		evb4510		\
+	impa7		integratorap	ap7		ap720t		\
+	modnet50							\
+"
 
 #########################################################################
 ## ARM9 Systems
 #########################################################################
 
 LIST_ARM9="	\
-	at91rm9200dk	cmc_pu2		integratorcp	integratorap 	\
-	lpd7a400	mx1ads		mx1fs2		omap1510inn	\
-	omap1610h2	omap1610inn	omap730p2	scb9328		\
-	smdk2400	smdk2410	trab		VCMA9		\
-	versatile	oxnas	\
+	at91rm9200dk	cmc_pu2						\
+	ap920t		ap922_XA10	ap926ejs	ap946es		\
+	ap966		cp920t		cp922_XA10	cp926ejs	\
+	cp946es		cp966		lpd7a400	mp2usb		\
+	mx1ads		mx1fs2		omap1510inn	omap1610h2	\
+	omap1610inn	omap730p2	scb9328		smdk2400	\
+	smdk2410	trab		VCMA9		versatile	\
+	versatileab	versatilepb	voiceblue	oxnas
+"
+
+#########################################################################
+## ARM10 Systems
+#########################################################################
+LIST_ARM10="	\
+	integratorcp	cp1026						\
+"
+
+#########################################################################
+## ARM11 Systems
+#########################################################################
+LIST_ARM11="	\
+	cp1136		omap2420h4					\
 "
 
 #########################################################################
@@ -162,27 +202,43 @@ LIST_ARM9="	\
 #########################################################################
 
 LIST_pxa="	\
-	cerf250		cradle		csb226		innokom		\
-	lubbock		wepep250	xaeniax		xm250		\
-	xsengine							\
+	adsvix		cerf250		cradle		csb226		\
+	innokom		lubbock		pxa255_idp	wepep250	\
+	xaeniax		xm250		xsengine			\
 "
 
 LIST_ixp="ixdp425"
 
 
-LIST_arm="${LIST_SA} ${LIST_ARM7} ${LIST_ARM9} ${LIST_pxa} ${LIST_ixp}"
+LIST_arm="	\
+	${LIST_SA}							\
+	${LIST_ARM7} ${LIST_ARM9} ${LIST_ARM10} ${LIST_ARM11}		\
+	${LIST_pxa} ${LIST_ixp}						\
+"
 
 #########################################################################
-## MIPS Systems
+## MIPS Systems		(default = big endian)
 #########################################################################
 
 LIST_mips4kc="incaip"
 
 LIST_mips5kc="purple"
 
-LIST_au1x00="dbau1000 dbau1100 dbau1500"
+LIST_au1xx0="dbau1000 dbau1100 dbau1500 dbau1550 dbau1550_el"
 
-LIST_mips="${LIST_mips4kc} ${LIST_mips5kc} ${LIST_au1x00}"
+LIST_mips="${LIST_mips4kc} ${LIST_mips5kc} ${LIST_au1xx0}"
+
+#########################################################################
+## MIPS Systems		(little endian)
+#########################################################################
+
+LIST_mips4kc_el=""
+
+LIST_mips5kc_el=""
+
+LIST_au1xx0_el="dbau1550_el"
+
+LIST_mips_el="${LIST_mips4kc_el} ${LIST_mips5kc_el} ${LIST_au1xx0_el}"
 
 #########################################################################
 ## i386 Systems
@@ -237,10 +293,10 @@ build_target() {
 for arg in $@
 do
 	case "$arg" in
-	ppc|5xx|5xxx|8xx|8220|824x|8260|85xx|4xx|7xx|74xx| \
-	arm|SA|ARM7|ARM9|pxa|ixp| \
+	ppc|5xx|5xxx|8xx|8220|824x|8260|83xx|85xx|4xx|7xx|74xx| \
+	arm|SA|ARM7|ARM9|ARM10|ARM11|pxa|ixp| \
 	microblaze| \
-	mips| \
+	mips|mips_el| \
 	nios|nios2| \
 	x86|I486)
 			for target in `eval echo '$LIST_'${arg}`

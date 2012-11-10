@@ -39,7 +39,6 @@
 #include <s3c2410.h>
 #endif
 
-extern void reset_cpu(ulong addr);
 int timer_load_val = 0;
 
 /* macro to read the 16 bit timer */
@@ -138,15 +137,24 @@ ulong get_timer_masked (void)
 void udelay_masked (unsigned long usec)
 {
 	ulong tmo;
+	ulong endtime;
+	signed long diff;
 
-	tmo = usec / 1000;
-	tmo *= (timer_load_val * 100);
-	tmo /= 1000;
+	if (usec >= 1000) {
+		tmo = usec / 1000;
+		tmo *= (timer_load_val * 100);
+		tmo /= 1000;
+	} else {
+		tmo = usec * (timer_load_val * 100);
+		tmo /= (1000*1000);
+	}
 
-	reset_timer_masked ();
+	endtime = get_timer_masked () + tmo;
 
-	while (get_timer_masked () < tmo)
-		/*NOP*/;
+	do {
+		ulong now = get_timer_masked ();
+		diff = endtime - now;
+	} while (diff >= 0);
 }
 
 /*
@@ -175,6 +183,35 @@ ulong get_tbclk (void)
 #endif
 
 	return tbclk;
+}
+
+/*
+ * reset the cpu by setting up the watchdog timer and let him time out
+ */
+void reset_cpu (ulong ignored)
+{
+	volatile S3C24X0_WATCHDOG * watchdog;
+
+#ifdef CONFIG_TRAB
+	extern void disable_vfd (void);
+
+	disable_vfd();
+#endif
+
+	watchdog = S3C24X0_GetBase_WATCHDOG();
+
+	/* Disable watchdog */
+	watchdog->WTCON = 0x0000;
+
+	/* Initialize watchdog timer count register */
+	watchdog->WTCNT = 0x0001;
+
+	/* Enable watchdog timer; assert reset at timer timeout */
+	watchdog->WTCON = 0x0021;
+
+	while(1);	/* loop forever and wait for reset to happen */
+
+	/*NOTREACHED*/
 }
 
 #endif /* defined(CONFIG_S3C2400) || defined (CONFIG_S3C2410) || defined (CONFIG_TRAB) */

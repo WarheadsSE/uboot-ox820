@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2000-2002
+ * (C) Copyright 2000-2005
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -63,8 +63,8 @@
 #undef	CONFIG_BOOTARGS
 #define CONFIG_BOOTCOMMAND							\
 	"bootp; " 								\
-	"setenv bootargs root=/dev/nfs rw nfsroot=$(serverip):$(rootpath) " 	\
-	"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask):$(hostname)::off; " 	\
+	"setenv bootargs root=/dev/nfs rw nfsroot=${serverip}:${rootpath} " 	\
+	"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off; " 	\
 	"bootm"
 
 #undef	CONFIG_SCC1_ENET
@@ -113,13 +113,15 @@
 
 #define CONFIG_COMMANDS	      ( CONFIG_CMD_DFL	| \
 				CFG_CMD_BMP	| \
-				CFG_CMD_DHCP	| \
+				CFG_CMD_BSP	| \
 				CFG_CMD_DATE	| \
+				CFG_CMD_DHCP	| \
 				CFG_CMD_I2C	| \
 				CFG_CMD_IDE	| \
 				CFG_CMD_JFFS2	| \
+				CFG_CMD_NFS	| \
 				CFG_CMD_PCMCIA	| \
-				CFG_CMD_BSP	)
+				CFG_CMD_SNTP	)
 
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
 #include <cmd_confdefs.h>
@@ -150,10 +152,22 @@
 
 #define CFG_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
 
-/* JFFS2 stuff */
-#define CFG_JFFS2_FIRST_BANK	0
-#define CFG_JFFS2_NUM_BANKS	1
-#define CFG_JFFS2_FIRST_SECTOR	24
+/*
+ * JFFS2 partitions
+ */
+/* No command line, one static partition
+ * use all the space starting at offset 3MB*/
+#undef CONFIG_JFFS2_CMDLINE
+#define CONFIG_JFFS2_DEV		"nor0"
+#define CONFIG_JFFS2_PART_SIZE		0xFFFFFFFF
+#define CONFIG_JFFS2_PART_OFFSET	0x00300000
+
+/* mtdparts command line support */
+/*
+#define CONFIG_JFFS2_CMDLINE
+#define MTDIDS_DEFAULT		"nor0=r360-0"
+#define MTDPARTS_DEFAULT	"mtdparts=r360-0:-@3m(user)"
+*/
 
 /*
  * Low Level Configuration Settings

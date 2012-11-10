@@ -26,7 +26,9 @@
 #include <common.h>
 #include <watchdog.h>
 #include <command.h>
-#include <malloc.h>
+#ifdef CONFIG_MODEM_SUPPORT
+#include <malloc.h>		/* for free() prototype */
+#endif
 
 #ifdef CFG_HUSH_PARSER
 #include <hush.h>
@@ -388,7 +390,7 @@ void main_loop (void)
 #ifdef CONFIG_MODEM_SUPPORT
 	debug ("DEBUG: main_loop:   do_mdm_init=%d\n", do_mdm_init);
 	if (do_mdm_init) {
-		uchar *str = strdup(getenv("mdm_cmd"));
+		char *str = strdup(getenv("mdm_cmd"));
 		setenv ("preboot", str);  /* set or delete definition */
 		if (str != NULL)
 			free (str);
@@ -661,7 +663,7 @@ void main_loop (void)
 	    s = getenv("menucmd");
 	    if (s) {
 # ifndef CFG_HUSH_PARSER
-		run_command (s, bd, 0);
+		run_command (s, 0);
 # else
 		parse_string_outer(s, FLAG_PARSE_SEMICOLON |
 				    FLAG_EXIT_FROM_LOOP);

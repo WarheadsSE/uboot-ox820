@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2001-2003
+ * (C) Copyright 2001-2005
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -61,12 +61,16 @@
 				CFG_CMD_DATE	| \
 				CFG_CMD_DHCP	| \
 				CFG_CMD_EEPROM	| \
+				CFG_CMD_EXT2	| \
 				CFG_CMD_FAT	| \
 				CFG_CMD_FLASH	| \
 				CFG_CMD_I2C	| \
 				CFG_CMD_IDE	| \
+				CFG_CMD_NFS	| \
 				CFG_CMD_PCI	| \
-				CFG_CMD_SDRAM	)
+				CFG_CMD_PING	| \
+				CFG_CMD_SDRAM	| \
+				CFG_CMD_SNTP	)
 
 /* This must be included AFTER the definition of CONFIG_COMMANDS (if any)
  */
@@ -493,14 +497,13 @@
 #define CFG_IDE_MAXDEVICE	1	/* max. 1 drive per IDE bus	*/
 
 #define CFG_ATA_IDE0_OFFSET	0x0000
-#define CONFIG_HMI10
 
 #define CFG_ATA_BASE_ADDR	CFG_PCMCIA_MEM_ADDR
 
 #define CFG_ATA_DATA_OFFSET	CFG_PCMCIA_MEM_SIZE
 
 /* Offset for normal register accesses	*/
-#define CFG_ATA_REG_OFFSET	CFG_PCMCIA_MEM_SIZE
+#define CFG_ATA_REG_OFFSET	(CFG_PCMCIA_MEM_SIZE + 0x320)
 
 /* Offset for alternate registers	*/
 #define CFG_ATA_ALT_OFFSET	(CFG_PCMCIA_MEM_SIZE + 0x400)

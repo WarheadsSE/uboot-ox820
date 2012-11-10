@@ -24,7 +24,7 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -36,7 +36,7 @@
 #include <common.h>
 
 #ifdef CONFIG_PCI
-#   include <pci.h>
+#include <pci.h>
 #endif
 
 void flash__init (void);
@@ -46,7 +46,7 @@ void peripheral_power_enable (void);
 #if defined(CONFIG_SHOW_BOOT_PROGRESS)
 void show_boot_progress(int progress)
 {
-    printf("Boot reached stage %d\n", progress);
+	printf("Boot reached stage %d\n", progress);
 }
 #endif
 
@@ -74,6 +74,11 @@ int board_init (void)
 	gd->bd->bi_boot_params = 0x00000100;
 
 	gd->flags = 0;
+
+#ifdef CONFIG_CM_REMAP
+extern void cm_remap(void);
+	cm_remap();	/* remaps writeable memory to 0x00000000 */
+#endif
 
 	icache_enable ();
 
@@ -109,17 +114,17 @@ static struct pci_config_table pci_integrator_config_table[] = {
 
 /* V3 access routines */
 #define _V3Write16(o,v) (*(volatile unsigned short *)(PCI_V3_BASE + (unsigned int)(o)) = (unsigned short)(v))
-#define _V3Read16(o)    (*(volatile unsigned short *)(PCI_V3_BASE + (unsigned int)(o)))
+#define _V3Read16(o)	(*(volatile unsigned short *)(PCI_V3_BASE + (unsigned int)(o)))
 
 #define _V3Write32(o,v) (*(volatile unsigned int *)(PCI_V3_BASE + (unsigned int)(o)) = (unsigned int)(v))
-#define _V3Read32(o)    (*(volatile unsigned int *)(PCI_V3_BASE + (unsigned int)(o)))
+#define _V3Read32(o)	(*(volatile unsigned int *)(PCI_V3_BASE + (unsigned int)(o)))
 
 /* Compute address necessary to access PCI config space for the given */
 /* bus and device. */
 #define PCI_CONFIG_ADDRESS( __bus, __devfn, __offset ) ({				\
 	unsigned int __address, __devicebit;						\
 	unsigned short __mapaddress;							\
-	unsigned int __dev = PCI_DEV (__devfn);	/* FIXME to check!! (slot?) */		\
+	unsigned int __dev = PCI_DEV (__devfn); /* FIXME to check!! (slot?) */		\
 											\
 	if (__bus == 0) {								\
 		/* local bus segment so need a type 0 config cycle */			\
@@ -142,10 +147,10 @@ static struct pci_config_table pci_integrator_config_table[] = {
 		/* A31-A24 are don't care (so clear to 0) */				\
 		__mapaddress = 0x000B;	/* 101=>config cycle, 1=>A1&A0 from PCI_CFG */	\
 		__address = PCI_CONFIG_BASE;						\
-		__address |= ((__bus & 0xFF) << 16);	/* bits 23..16 = bus number     */  \
-		__address |= ((__dev & 0x1F) << 11);	/* bits 15..11 = device number  */  \
+		__address |= ((__bus & 0xFF) << 16);	/* bits 23..16 = bus number	*/  \
+		__address |= ((__dev & 0x1F) << 11);	/* bits 15..11 = device number	*/  \
 		__address |= ((__devfn & 0x07) << 8);	/* bits 10..8  = function number */ \
-		__address |= __offset & 0xFF;	/* bits  7..0  = register number */	\
+		__address |= __offset & 0xFF;	/* bits	 7..0  = register number */	\
 	}										\
 	_V3Write16 (V3_LB_MAP1, __mapaddress);						\
 	__address;									\
@@ -463,7 +468,7 @@ void flash__init (void)
 /*************************************************************
  Routine:ether__init
  Description: take the Ethernet controller out of reset and wait
-	  		   for the EEPROM load to complete.
+			   for the EEPROM load to complete.
 *************************************************************/
 void ether__init (void)
 {
@@ -475,5 +480,172 @@ void ether__init (void)
 ******************************/
 int dram_init (void)
 {
+	DECLARE_GLOBAL_DATA_PTR;
+
+	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
+	gd->bd->bi_dram[0].size	 = PHYS_SDRAM_1_SIZE;
+
+#ifdef CONFIG_CM_SPD_DETECT
+	{
+extern void dram_query(void);
+	unsigned long cm_reg_sdram;
+	unsigned long sdram_shift;
+
+	dram_query();	/* Assembler accesses to CM registers */
+			/* Queries the SPD values	      */
+
+	/* Obtain the SDRAM size from the CM SDRAM register */
+
+	cm_reg_sdram = *(volatile ulong *)(CM_BASE + OS_SDRAM);
+	/*   Register	      SDRAM size
+	 *
+	 *   0xXXXXXXbbb000bb	 16 MB
+	 *   0xXXXXXXbbb001bb	 32 MB
+	 *   0xXXXXXXbbb010bb	 64 MB
+	 *   0xXXXXXXbbb011bb	128 MB
+	 *   0xXXXXXXbbb100bb	256 MB
+	 *
+	 */
+	sdram_shift		 = ((cm_reg_sdram & 0x0000001C)/4)%4;
+	gd->bd->bi_dram[0].size	 = 0x01000000 << sdram_shift;
+
+	}
+#endif /* CM_SPD_DETECT */
+
 	return 0;
+}
+
+/* The Integrator/AP timer1 is clocked at 24MHz
+ * can be divided by 16 or 256
+ * and is a 16-bit counter
+ */
+/* U-Boot expects a 32 bit timer running at CFG_HZ*/
+static ulong timestamp;		/* U-Boot ticks since startup	      */
+static ulong total_count = 0;	/* Total timer count		      */
+static ulong lastdec;		/* Timer reading at last call	      */
+static ulong div_clock	 = 256; /* Divisor applied to the timer clock */
+static ulong div_timer	 = 1;	/* Divisor to convert timer reading
+				 * change to U-Boot ticks
+				 */
+/* CFG_HZ = CFG_HZ_CLOCK/(div_clock * div_timer) */
+
+#define TIMER_LOAD_VAL 0x0000FFFFL
+#define READ_TIMER ((*(volatile ulong *)(CFG_TIMERBASE+4)) & 0x0000FFFFL)
+
+/* all function return values in U-Boot ticks i.e. (1/CFG_HZ) sec
+ *  - unless otherwise stated
+ */
+
+/* starts a counter
+ * - the Integrator/AP timer issues an interrupt
+ *   each time it reaches zero
+ */
+int interrupt_init (void)
+{
+	/* Load timer with initial value */
+	*(volatile ulong *)(CFG_TIMERBASE + 0) = TIMER_LOAD_VAL;
+	/* Set timer to be
+	 *	enabled		  1
+	 *	free-running	  0
+	 *	XX		 00
+	 *	divider 256	 10
+	 *	XX		 00
+	 */
+	*(volatile ulong *)(CFG_TIMERBASE + 8) = 0x00000088;
+	total_count = 0;
+	/* init the timestamp and lastdec value */
+	reset_timer_masked();
+
+	div_timer  = CFG_HZ_CLOCK / CFG_HZ;
+	div_timer /= div_clock;
+
+	return (0);
+}
+
+/*
+ * timer without interrupts
+ */
+void reset_timer (void)
+{
+	reset_timer_masked ();
+}
+
+ulong get_timer (ulong base_ticks)
+{
+	return get_timer_masked () - base_ticks;
+}
+
+void set_timer (ulong ticks)
+{
+	timestamp = ticks;
+	total_count = ticks * div_timer;
+	reset_timer_masked();
+}
+
+/* delay x useconds */
+void udelay (unsigned long usec)
+{
+	ulong tmo, tmp;
+
+	/* Convert to U-Boot ticks */
+	tmo  = usec * CFG_HZ;
+	tmo /= (1000000L);
+
+	tmp  = get_timer_masked();	/* get current timestamp */
+	tmo += tmp;			/* wake up timestamp	 */
+
+	while (get_timer_masked () < tmo) { /* loop till event */
+		/*NOP*/;
+	}
+}
+
+void reset_timer_masked (void)
+{
+	/* reset time */
+	lastdec	  = READ_TIMER; /* capture current decrementer value   */
+	timestamp = 0;		/* start "advancing" time stamp from 0 */
+}
+
+/* converts the timer reading to U-Boot ticks	       */
+/* the timestamp is the number of ticks since reset    */
+/* This routine does not detect wraps unless called regularly
+   ASSUMES a call at least every 16 seconds to detect every reload */
+ulong get_timer_masked (void)
+{
+	ulong now = READ_TIMER;		/* current count */
+
+	if (now > lastdec) {
+		/* Must have wrapped */
+		total_count += lastdec + TIMER_LOAD_VAL + 1 - now;
+	} else {
+		total_count += lastdec - now;
+	}
+	lastdec	  = now;
+	timestamp = total_count/div_timer;
+
+	return timestamp;
+}
+
+/* waits specified delay value and resets timestamp */
+void udelay_masked (unsigned long usec)
+{
+	udelay(usec);
+}
+
+/*
+ * This function is derived from PowerPC code (read timebase as long long).
+ * On ARM it just returns the timer value.
+ */
+unsigned long long get_ticks(void)
+{
+	return get_timer(0);
+}
+
+/*
+ * Return the timebase clock frequency
+ * i.e. how often the timer decrements
+ */
+ulong get_tbclk (void)
+{
+	return CFG_HZ_CLOCK/div_clock;
 }

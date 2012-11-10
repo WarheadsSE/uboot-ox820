@@ -25,8 +25,8 @@ include $(TOPDIR)/config.mk
 
 LIB	= lib$(BOARD).a
 
-OBJS	:= omap5912osk.o flash.o
-SOBJS	:= platform.o
+OBJS	:= omap5912osk.o
+SOBJS	:= lowlevel_init.o
 
 $(LIB):	$(OBJS) $(SOBJS)
 	$(AR) crv $@ $^

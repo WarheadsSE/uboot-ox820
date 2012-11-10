@@ -83,7 +83,7 @@ fat_register_device(block_dev_desc_t *dev_desc, int part_no)
 		/* no signature found */
 		return -1;
 	}
-	if(!strncmp(&buffer[DOS_FS_TYPE_OFFSET],"FAT",3)) {
+	if(!strncmp((char *)&buffer[DOS_FS_TYPE_OFFSET],"FAT",3)) {
 		/* ok, we assume we are on a PBR only */
 		cur_part = 1;
 		part_offset=0;
@@ -722,6 +722,9 @@ long
 do_fat_read (const char *filename, void *buffer, unsigned long maxsize,
 	     int dols)
 {
+#if CONFIG_NIOS /* NIOS CPU cannot access big automatic arrays */
+    static
+#endif
     char fnamecopy[2048];
     boot_sector bs;
     volume_info volinfo;

@@ -137,13 +137,13 @@ int checkcpu (void)
 		puts ("0.0 0K50M");
 		break;
 	case 0x0C10:
-		puts ("1.0 0K50M");
+		puts ("1.0 1K50M");
 		break;
 	case 0x0D00:
 		puts ("0.0 0K50M");
 		break;
 	case 0x0D10:
-		puts ("1.0 0K50M");
+		puts ("1.0 1K50M");
 		break;
 	default:
 		printf ("unknown [immr=0x%04x,k=0x%04x]", m, k);
@@ -220,6 +220,7 @@ void upmconfig (uint upm, uint * table, uint size)
 
 /* ------------------------------------------------------------------------- */
 
+#if !defined(CONFIG_HAVE_OWN_RESET)
 int
 do_reset (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 {
@@ -253,6 +254,7 @@ do_reset (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 	return 1;
 
 }
+#endif	/* CONFIG_HAVE_OWN_RESET */
 
 /* ------------------------------------------------------------------------- */
 

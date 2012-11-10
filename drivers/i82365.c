@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2003-2004
+ * (C) Copyright 2003-2005
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -149,7 +149,6 @@ static int pci_writel (socket_info_t * s, int r, u_int v)
 static u_char i365_get (socket_info_t * s, u_short reg)
 {
 	u_char val;
-
 #ifdef CONFIG_PCMCIA_SLOT_A
 	int slot = 0;
 #else
@@ -172,8 +171,9 @@ static void i365_set (socket_info_t * s, u_short reg, u_char data)
 #else
 	int slot = 1;
 #endif
+	u_char val;
 
-	u_char val = I365_REG (slot, reg);
+	val = I365_REG (slot, reg);
 
 	cb_writeb (s, val);
 	cb_writeb2 (s, data);
@@ -274,7 +274,6 @@ static u_int cirrus_set_opts (socket_info_t * s)
 {
 	cirrus_state_t *p = &s->c_state;
 	u_int mask = 0xffff;
-
 #if DEBUG
 	char buf[200];
 
@@ -444,31 +443,6 @@ static int cb_set_power (socket_info_t * s, socket_state_t * state)
 
 #ifdef CONFIG_CPC45
 
-	if ((state->Vcc == 0) && (state->Vpp == 0)) {
-		u_char power, vcc, vpp;
-
-		power = i365_get (s, I365_POWER);
-		state->flags |= (power & I365_PWR_AUTO) ? SS_PWR_AUTO : 0;
-		state->flags |= (power & I365_PWR_OUT) ? SS_OUTPUT_ENA : 0;
-		vcc = power & I365_VCC_MASK;
-		vpp = power & I365_VPP1_MASK;
-		state->Vcc = state->Vpp = 0;
-		if (i365_get (s, PD67_MISC_CTL_1) & PD67_MC1_VCC_3V) {
-			if (power & I365_VCC_5V)
-				state->Vcc = 33;
-			if (vpp == I365_VPP1_5V)
-				state->Vpp = 33;
-		} else {
-			if (power & I365_VCC_5V)
-				state->Vcc = 50;
-			if (vpp == I365_VPP1_5V)
-				state->Vpp = 50;
-		}
-		if (power == I365_VPP1_12V)
-			state->Vpp = 120;
-		printf ("POWER Vcc:%d Vpp: %d\n", state->Vcc, state->Vpp);
-	}
-
 	reg = I365_PWR_NORESET;
 	if (state->flags & SS_PWR_AUTO)
 		reg |= I365_PWR_AUTO;
@@ -480,7 +454,6 @@ static int cb_set_power (socket_info_t * s, socket_state_t * state)
 			puts (" 12V card found: ");
 		} else if (state->Vpp == state->Vcc) {
 			reg |= I365_VPP1_5V;
-			puts (" 5V card found: ");
 		} else {
 			puts (" power not found: ");
 			return -1;
@@ -499,8 +472,11 @@ static int cb_set_power (socket_info_t * s, socket_state_t * state)
 			return -1;
 		}
 	}
-	if (reg != i365_get (s, I365_POWER))
+
+	if (reg != i365_get (s, I365_POWER)) {
+		reg = (I365_PWR_OUT | I365_PWR_NORESET | I365_VCC_5V | I365_VPP1_5V);
 		i365_set (s, I365_POWER, reg);
+	}
 
 #else	/* ! CONFIG_CPC45 */
 
@@ -581,14 +557,20 @@ static void set_bridge_opts (socket_info_t * s)
 }
 
 /*====================================================================*/
+#define PD67_EXT_INDEX		0x2e	/* Extension index */
+#define PD67_EXT_DATA		0x2f	/* Extension data */
+#define PD67_EXD_VS1(s)		(0x01 << ((s)<<1))
+
+#define pd67_ext_get(s, r) \
+    (i365_set(s, PD67_EXT_INDEX, r), i365_get(s, PD67_EXT_DATA))
 
 static int i365_get_status (socket_info_t * s, u_int * value)
 {
 	u_int status;
-
 #ifdef CONFIG_CPC45
 	u_char val;
 	u_char power, vcc, vpp;
+	u_int powerstate;
 #endif
 
 	status = i365_get (s, I365_IDENT);
@@ -612,9 +594,7 @@ static int i365_get_status (socket_info_t * s, u_int * value)
 	if ((val & PD67_INFO_CHIP_ID) == PD67_INFO_CHIP_ID) {
 		val = i365_get (s, PD67_CHIP_INFO);
 		if ((val & PD67_INFO_CHIP_ID) == 0) {
-			s->type =
-				(val & PD67_INFO_SLOTS) ? IS_PD672X :
-				IS_PD6710;
+			s->type = (val & PD67_INFO_SLOTS) ? IS_PD672X : IS_PD6710;
 			i365_set (s, PD67_EXT_INDEX, 0xe5);
 			if (i365_get (s, PD67_EXT_INDEX) != 0xe5)
 				s->type = IS_VT83C469;
@@ -625,24 +605,32 @@ static int i365_get_status (socket_info_t * s, u_int * value)
 		return -1;
 	}
 
-	i365_bset (s, I365_POWER, I365_VCC_5V);
 	power = i365_get (s, I365_POWER);
 	state.flags |= (power & I365_PWR_AUTO) ? SS_PWR_AUTO : 0;
 	state.flags |= (power & I365_PWR_OUT) ? SS_OUTPUT_ENA : 0;
 	vcc = power & I365_VCC_MASK;
 	vpp = power & I365_VPP1_MASK;
 	state.Vcc = state.Vpp = 0;
-	if (i365_get (s, PD67_MISC_CTL_1) & PD67_MC1_VCC_3V) {
-		if (power & I365_VCC_5V)
-			state.Vcc = 33;
-		if (vpp == I365_VPP1_5V)
-			state.Vpp = 33;
-	} else {
-		if (power & I365_VCC_5V)
-			state.Vcc = 50;
-		if (vpp == I365_VPP1_5V)
-			state.Vpp = 50;
+	if((vcc== 0) || (vpp == 0)) {
+		/*
+		 * On the Cirrus we get the info which card voltage
+		 * we have in EXTERN DATA and write it to MISC_CTL1
+		 */
+		powerstate = pd67_ext_get(s, PD67_EXTERN_DATA);
+		if (powerstate & PD67_EXD_VS1(0)) {
+			/* 5V Card */
+			i365_bclr (s, PD67_MISC_CTL_1, PD67_MC1_VCC_3V);
+		} else {
+			/* 3.3V Card */
+			i365_bset (s, PD67_MISC_CTL_1, PD67_MC1_VCC_3V);
+		}
+		i365_set (s, I365_POWER, (I365_PWR_OUT | I365_PWR_NORESET | I365_VCC_5V | I365_VPP1_5V));
+		power = i365_get (s, I365_POWER);
 	}
+	if (power & I365_VCC_5V) {
+		state.Vcc = (i365_get(s, PD67_MISC_CTL_1) & PD67_MC1_VCC_3V) ? 33 : 50;
+	}
+
 	if (power == I365_VPP1_12V)
 		state.Vpp = 120;
 
@@ -874,6 +862,10 @@ int i82365_init (void)
 		printf ("i82365: Controller not found.\n");
 		return 1;
 	}
+	if((val & SS_DETECT) != SS_DETECT){
+		puts ("No card\n");
+		return 1;
+	}
 #else	/* !CONFIG_CPC45 */
 	if (val & SS_DETECT) {
 		if (val & SS_3VCARD) {
@@ -1004,8 +996,10 @@ static void i82365_dump_regions (pci_dev_t dev)
 	pci_read_config_dword (dev, 0x00, tmp + 0);
 	pci_read_config_dword (dev, 0x80, tmp + 1);
 
-	printf ("PCI CONF: %08X ... %08X\n", tmp[0], tmp[1]);
-	printf ("PCI MEM:  ... %08X ... %08X\n", mem[0x8 / 4], mem[0x800 / 4]);
+	printf ("PCI CONF: %08X ... %08X\n",
+		tmp[0], tmp[1]);
+	printf ("PCI MEM:  ... %08X ... %08X\n",
+		mem[0x8 / 4], mem[0x800 / 4]);
 	printf ("CIS:      ...%c%c%c%c%c%c%c%c...\n",
 		cis[0x38], cis[0x3a], cis[0x3c], cis[0x3e],
 		cis[0x40], cis[0x42], cis[0x44], cis[0x48]);

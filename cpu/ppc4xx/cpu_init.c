@@ -23,7 +23,7 @@
 
 #include <common.h>
 #include <watchdog.h>
-#include <405gp_enet.h>
+#include <ppc4xx_enet.h>
 #include <asm/processor.h>
 #include <ppc4xx.h>
 
@@ -188,7 +188,11 @@ cpu_init_f (void)
 	unsigned long val;
 
 	val = mfspr(tcr);
+#if defined(CONFIG_440EP) || defined(CONFIG_440GR)
+	val |= 0xb8000000;      /* generate system reset after 1.34 seconds */
+#else
 	val |= 0xf0000000;      /* generate system reset after 2.684 seconds */
+#endif
 	mtspr(tcr, val);
 
 	val = mfspr(tsr);

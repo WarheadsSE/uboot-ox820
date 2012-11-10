@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2003
+ * (C) Copyright 2003-2005
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -51,8 +51,6 @@
 
 /* default developmenmt environment */
 
-#undef CONFIG_CLOCKS_IN_MHZ		/* clocks passed to Linux in MHz. Needed for old kernels (2.4) crashes for new kernels */
-
 #define CONFIG_ETHADDR 00:0B:17:00:00:00
 
 #define CONFIG_IPADDR  10.10.69.10
@@ -67,9 +65,9 @@
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
     "serial#=12345\0"		\
-	"nfsargs=setenv bootargs root=/dev/nfs rw nfsroot=$(serverip):$(rootpath)\0"	\
+	"nfsargs=setenv bootargs root=/dev/nfs rw nfsroot=${serverip}:${rootpath}\0"	\
 	"ramargs=setenv bootargs root=/dev/ram rw\0" \
-    "addip=setenv bootargs $(bootargs) ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask):$(hostname)::off\0"
+    "addip=setenv bootargs ${bootargs} ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off\0"
 
 /*
  * Select the more full-featured memory test (Barr embedded systems)
@@ -97,8 +95,10 @@
 #define CONFIG_COMMANDS	      ( CONFIG_CMD_DFL	| \
 				CFG_CMD_DATE	| \
 				CFG_CMD_DHCP	| \
-		CFG_CMD_PING	| \
-		CFG_CMD_REGINFO)
+				CFG_CMD_NFS	| \
+				CFG_CMD_PING	| \
+				CFG_CMD_REGINFO	| \
+				CFG_CMD_SNTP	)
 
 #define CONFIG_BOOTP_MASK	(CONFIG_BOOTP_DEFAULT | CONFIG_BOOTP_BOOTFILESIZE)
 

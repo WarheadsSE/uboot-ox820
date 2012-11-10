@@ -29,7 +29,7 @@
 # endif
 #endif	/* CONFIG_MPC5xxx */
 
-#if !defined(CONFIG_NET_MULTI) && (defined(CONFIG_8260) || defined(CONFIG_MPC8560))
+#if !defined(CONFIG_NET_MULTI) && defined(CONFIG_CPM2)
 #include <config.h>
 #if defined(CONFIG_ETHER_ON_FCC)
 #if defined(CONFIG_ETHER_ON_SCC)
@@ -114,6 +114,7 @@ extern void eth_try_another(int first_restart);	/* Change the device		*/
 extern void eth_set_current(void);		/* set nterface to ethcur var.  */
 #endif
 extern struct eth_device *eth_get_dev(void);	/* get the current device MAC	*/
+extern struct eth_device *eth_get_dev_by_name(char *devname); /* get device	*/
 extern int eth_get_dev_index (void);		/* get the device index         */
 extern void eth_set_enetaddr(int num, char* a);	/* Set new MAC address		*/
 
@@ -335,7 +336,7 @@ extern int		NetState;		/* Network loop state		*/
 extern int		NetRestartWrap;		/* Tried all network devices	*/
 #endif
 
-typedef enum { BOOTP, RARP, ARP, TFTP, DHCP, PING, DNS, NFS, CDP, NETCONS } proto_t;
+typedef enum { BOOTP, RARP, ARP, TFTP, DHCP, PING, DNS, NFS, CDP, NETCONS, SNTP } proto_t;
 
 /* from net/net.c */
 extern char	BootFile[128];			/* Boot File name		*/
@@ -348,6 +349,11 @@ extern IPaddr_t	NetPingIP;			/* the ip address to ping 		*/
 /* when CDP completes these hold the return values */
 extern ushort CDPNativeVLAN;
 extern ushort CDPApplianceVLAN;
+#endif
+
+#if (CONFIG_COMMANDS & CFG_CMD_SNTP)
+extern IPaddr_t	NetNtpServerIP;			/* the ip address to NTP 	*/
+extern int NetTimeOffset;			/* offset time from UTC		*/
 #endif
 
 /* Initialize the network adapter */
@@ -448,7 +454,7 @@ extern IPaddr_t getenv_IPaddr (char *);
 extern ushort getenv_VLAN(char *);
 
 /* copy a filename (allow for "..." notation, limit length) */
-extern void	copy_filename (uchar *dst, uchar *src, int size);
+extern void	copy_filename (char *dst, char *src, int size);
 
 /**********************************************************************/
 

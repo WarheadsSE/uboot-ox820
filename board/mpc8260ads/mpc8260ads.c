@@ -13,6 +13,10 @@
  * Yuli Barcohen <yuli@arabellasw.com>
  * Added support for SDRAM DIMMs SPD EEPROM, MII, Ethernet PHY init.
  *
+ * Copyright (c) 2005 MontaVista Software, Inc.
+ * Vitaly Bordug <vbordug@ru.mvista.com>
+ * Added support for PCI.
+ *
  * See file CREDITS for list of people who contributed to this
  * project.
  *
@@ -39,6 +43,9 @@
 #include <i2c.h>
 #include <spd.h>
 #include <miiphy.h>
+#ifdef CONFIG_PCI
+#include <pci.h>
+#endif
 
 /*
  * I/O Port configuration table
@@ -231,8 +238,9 @@ void reset_phy (void)
 	 * Do not bypass Rx/Tx (de)scrambler (fix configuration error)
 	 * Enable autonegotiation.
 	 */
-	miiphy_write(CFG_PHY_ADDR, 16, 0x610);
-	miiphy_write(CFG_PHY_ADDR, PHY_BMCR, PHY_BMCR_AUTON | PHY_BMCR_RST_NEG);
+	bb_miiphy_write(NULL, CFG_PHY_ADDR, 16, 0x610);
+	bb_miiphy_write(NULL, CFG_PHY_ADDR, PHY_BMCR,
+			PHY_BMCR_AUTON | PHY_BMCR_RST_NEG);
 #else
 	/*
 	 * Ethernet PHY is configured (by means of configuration pins)
@@ -240,17 +248,36 @@ void reset_phy (void)
 	 * to advertise all capabilities, including 100Mb/s, and
 	 * restart autonegotiation.
 	 */
-	miiphy_write(CFG_PHY_ADDR, PHY_ANAR, 0x01E1); /* Advertise all capabilities */
-	miiphy_write(CFG_PHY_ADDR, PHY_DCR,  0x0000); /* Do not bypass Rx/Tx (de)scrambler */
-	miiphy_write(CFG_PHY_ADDR, PHY_BMCR, PHY_BMCR_AUTON | PHY_BMCR_RST_NEG);
+
+	/* Advertise all capabilities */
+	bb_miiphy_write(NULL, CFG_PHY_ADDR, PHY_ANAR, 0x01E1);
+
+	/* Do not bypass Rx/Tx (de)scrambler */
+	bb_miiphy_write(NULL, CFG_PHY_ADDR, PHY_DCR,  0x0000);
+
+	bb_miiphy_write(NULL, CFG_PHY_ADDR, PHY_BMCR,
+			PHY_BMCR_AUTON | PHY_BMCR_RST_NEG);
 #endif /* CONFIG_ADSTYPE == CFG_PQ2FADS */
 #endif /* CONFIG_MII */
 }
+
+#ifdef CONFIG_PCI
+typedef struct pci_ic_s {
+	unsigned long pci_int_stat;
+	unsigned long pci_int_mask;
+}pci_ic_t;
+#endif
 
 int board_early_init_f (void)
 {
 	vu_long *bcsr = (vu_long *)CFG_BCSR;
 
+#ifdef CONFIG_PCI
+	volatile pci_ic_t* pci_ic = (pci_ic_t *) CFG_PCI_INT;
+
+	/* mask alll the PCI interrupts */
+	pci_ic->pci_int_mask |= 0xfff00000;
+#endif
 #if (CONFIG_CONS_INDEX == 1) || (CONFIG_KGDB_INDEX == 1)
 	bcsr[1] &= ~RS232EN_1;
 #endif
@@ -506,3 +533,14 @@ int checkboard (void)
 #endif
 	return 0;
 }
+
+#ifdef CONFIG_PCI
+struct pci_controller hose;
+
+extern void pci_mpc8250_init(struct pci_controller *);
+
+void pci_init_board(void)
+{
+	pci_mpc8250_init(&hose);
+}
+#endif

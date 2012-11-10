@@ -40,10 +40,10 @@
  *
  * DHCP:
  *
- *     Prerequisites:   - own ethernet address
- *     We want:         - IP, Netmask, ServerIP, Gateway IP
- *                      - bootfilename, lease time
- *     Next step:       - TFTP
+ *     Prerequisites:	- own ethernet address
+ *     We want:		- IP, Netmask, ServerIP, Gateway IP
+ *			- bootfilename, lease time
+ *     Next step:	- TFTP
  *
  * TFTP:
  *
@@ -64,6 +64,13 @@
  *			  derived from our own IP address)
  *	We want:	- load the boot file
  *	Next step:	none
+ *
+ * SNTP:
+ *
+ *	Prerequisites:	- own ethernet address
+ *			- own IP address
+ *	We want:	- network time
+ *	Next step:	none
  */
 
 
@@ -78,6 +85,9 @@
 #ifdef CONFIG_STATUS_LED
 #include <status_led.h>
 #include <miiphy.h>
+#endif
+#if (CONFIG_COMMANDS & CFG_CMD_SNTP)
+#include "sntp.h"
 #endif
 
 #if (CONFIG_COMMANDS & CFG_CMD_NET)
@@ -148,6 +158,11 @@ static void PingStart(void);
 static void CDPStart(void);
 #endif
 
+#if (CONFIG_COMMANDS & CFG_CMD_SNTP)
+IPaddr_t	NetNtpServerIP;		/* NTP server IP address		*/
+int		NetTimeOffset=0;	/* offset time from UTC			*/
+#endif
+
 #ifdef CONFIG_NETCONSOLE
 void NcStart(void);
 int nc_input_packet(uchar *pkt, unsigned dest, unsigned src, unsigned len);
@@ -170,7 +185,7 @@ static int net_check_prereq (proto_t protocol);
 IPaddr_t	NetArpWaitPacketIP;
 IPaddr_t	NetArpWaitReplyIP;
 uchar	       *NetArpWaitPacketMAC;	/* MAC address of waiting packet's destination	*/
-uchar          *NetArpWaitTxPacket;	/* THE transmit packet			*/
+uchar	       *NetArpWaitTxPacket;	/* THE transmit packet			*/
 int		NetArpWaitTxPacketSize;
 uchar 		NetArpWaitPacketBuf[PKTSIZE_ALIGN + PKTALIGN];
 ulong		NetArpWaitTimerStart;
@@ -197,8 +212,8 @@ void ArpRequest (void)
 	arp->ar_pln = 4;
 	arp->ar_op = htons (ARPOP_REQUEST);
 
-	memcpy (&arp->ar_data[0], NetOurEther, 6);		/* source ET addr       */
-	NetWriteIP ((uchar *) & arp->ar_data[6], NetOurIP);	/* source IP addr       */
+	memcpy (&arp->ar_data[0], NetOurEther, 6);		/* source ET addr	*/
+	NetWriteIP ((uchar *) & arp->ar_data[6], NetOurIP);	/* source IP addr	*/
 	for (i = 10; i < 16; ++i) {
 		arp->ar_data[i] = 0;				/* dest ET addr = 0     */
 	}
@@ -289,8 +304,10 @@ NetLoop(proto_t protocol)
 #ifdef CONFIG_NET_MULTI
 	eth_set_current();
 #endif
-	if (eth_init(bd) < 0)
+	if (eth_init(bd) < 0) {
+		eth_halt();
 		return(-1);
+	}
 
 restart:
 #ifdef CONFIG_NET_MULTI
@@ -314,6 +331,9 @@ restart:
 #if (CONFIG_COMMANDS & CFG_CMD_PING)
 	case PING:
 #endif
+#if (CONFIG_COMMANDS & CFG_CMD_SNTP)
+	case SNTP:
+#endif
 	case NETCONS:
 	case TFTP:
 		NetCopyIP(&NetOurIP, &bd->bi_ip_addr);
@@ -335,6 +355,11 @@ restart:
 			/* nothing */
 			break;
 #endif
+#if (CONFIG_COMMANDS & CFG_CMD_SNTP)
+		case SNTP:
+			/* nothing */
+			break;
+#endif
 		default:
 			break;
 		}
@@ -348,11 +373,11 @@ restart:
 		 */
 		NetOurIP = 0;
 		NetServerIP = getenv_IPaddr ("serverip");
- 		NetOurVLAN = getenv_VLAN("vlan");	/* VLANs must be read */
- 		NetOurNativeVLAN = getenv_VLAN("nvlan");
- 	case CDP:
- 		NetOurVLAN = getenv_VLAN("vlan");	/* VLANs must be read */
- 		NetOurNativeVLAN = getenv_VLAN("nvlan");
+		NetOurVLAN = getenv_VLAN("vlan");	/* VLANs must be read */
+		NetOurNativeVLAN = getenv_VLAN("nvlan");
+	case CDP:
+		NetOurVLAN = getenv_VLAN("vlan");	/* VLANs must be read */
+		NetOurNativeVLAN = getenv_VLAN("nvlan");
 		break;
 	default:
 		break;
@@ -361,6 +386,7 @@ restart:
 	switch (net_check_prereq (protocol)) {
 	case 1:
 		/* network not configured */
+		eth_halt();
 		return (-1);
 
 #ifdef CONFIG_NET_MULTI
@@ -418,6 +444,11 @@ restart:
 			NcStart();
 			break;
 #endif
+#if (CONFIG_COMMANDS & CFG_CMD_SNTP)
+		case SNTP:
+			SntpStart();
+			break;
+#endif
 		default:
 			break;
 		}
@@ -431,7 +462,7 @@ restart:
 	/*
 	 * Echo the inverted link state to the fault LED.
 	 */
-	if(miiphy_link(CFG_FAULT_MII_ADDR)) {
+	if(miiphy_link(eth_get_dev()->name, CFG_FAULT_MII_ADDR)) {
 		status_led_set (STATUS_LED_RED, STATUS_LED_OFF);
 	} else {
 		status_led_set (STATUS_LED_RED, STATUS_LED_ON);
@@ -441,7 +472,7 @@ restart:
 
 	/*
 	 *	Main packet reception loop.  Loop receiving packets until
-	 *	someone sets `NetQuit'.
+	 *	someone sets `NetState' to a state that terminates.
 	 */
 	for (;;) {
 		WATCHDOG_RESET();
@@ -476,16 +507,18 @@ restart:
 			thand_f *x;
 
 #if defined(CONFIG_MII) || (CONFIG_COMMANDS & CFG_CMD_MII)
-#if defined(CFG_FAULT_ECHO_LINK_DOWN) && defined(CONFIG_STATUS_LED) && defined(STATUS_LED_RED)
+#  if defined(CFG_FAULT_ECHO_LINK_DOWN) && \
+      defined(CONFIG_STATUS_LED) &&	   \
+      defined(STATUS_LED_RED)
 			/*
 			 * Echo the inverted link state to the fault LED.
 			 */
-			if(miiphy_link(CFG_FAULT_MII_ADDR)) {
+			if(miiphy_link(eth_get_dev()->name, CFG_FAULT_MII_ADDR)) {
 				status_led_set (STATUS_LED_RED, STATUS_LED_OFF);
 			} else {
 				status_led_set (STATUS_LED_RED, STATUS_LED_ON);
 			}
-#endif /* CFG_FAULT_ECHO_LINK_DOWN, ... */
+#  endif /* CFG_FAULT_ECHO_LINK_DOWN, ... */
 #endif /* CONFIG_MII, ... */
 			x = timeHandler;
 			timeHandler = (thand_f *)0;
@@ -778,6 +811,7 @@ static ushort CDP_compute_csum(const uchar *buff, ushort len)
 	int     odd;
 	ulong   result = 0;
 	ushort  leftover;
+	ushort *p;
 
 	if (len > 0) {
 		odd = 1 & (ulong)buff;
@@ -787,14 +821,19 @@ static ushort CDP_compute_csum(const uchar *buff, ushort len)
 			buff++;
 		}
 		while (len > 1) {
-			result += *((const ushort *)buff)++;
+			p = (ushort *)buff;
+			result += *p++;
+			buff = (uchar *)p;
 			if (result & 0x80000000)
 				result = (result & 0xFFFF) + (result >> 16);
 			len -= 2;
 		}
 		if (len) {
 			leftover = (signed short)(*(const signed char *)buff);
-			/* * XXX CISCO SUCKS big time! (and blows too) */
+			/* CISCO SUCKS big time! (and blows too):
+			 * CDP uses the IP checksum algorithm with a twist;
+			 * for the last byte it *sign* extends and sums.
+			 */
 			result = (result & 0xffff0000) | ((result + leftover) & 0x0000ffff);
 		}
 		while (result >> 16)
@@ -1293,6 +1332,7 @@ NetReceive(volatile uchar * inpkt, int len)
 #endif
 			return;
 		}
+		break;
 
 	case PROT_RARP:
 #ifdef ET_DEBUG
@@ -1372,12 +1412,12 @@ NetReceive(volatile uchar * inpkt, int len)
 
 			switch (icmph->type) {
 			case ICMP_REDIRECT:
-			if (icmph->code != ICMP_REDIR_HOST)
+				if (icmph->code != ICMP_REDIR_HOST)
+					return;
+				puts (" ICMP Host Redirect to ");
+				print_IPaddr(icmph->un.gateway);
+				putc(' ');
 				return;
-			puts (" ICMP Host Redirect to ");
-			print_IPaddr(icmph->un.gateway);
-			putc(' ');
-				break;
 #if (CONFIG_COMMANDS & CFG_CMD_PING)
 			case ICMP_ECHO_REPLY:
 				/*
@@ -1385,7 +1425,7 @@ NetReceive(volatile uchar * inpkt, int len)
 				 */
 				/* XXX point to ip packet */
 				(*packetHandler)((uchar *)ip, 0, 0, 0);
-				return;/**break; BHC Changed to remove second invocation of ping handler below */
+				return;
 #endif
 			default:
 				return;
@@ -1393,6 +1433,46 @@ NetReceive(volatile uchar * inpkt, int len)
 		} else if (ip->ip_p != IPPROTO_UDP) {	/* Only UDP packets */
 			return;
 		}
+
+#ifdef CONFIG_UDP_CHECKSUM
+		if (ip->udp_xsum != 0) {
+			ulong   xsum;
+			ushort *sumptr;
+			ushort  sumlen;
+
+			xsum  = ip->ip_p;
+			xsum += (ntohs(ip->udp_len));
+			xsum += (ntohl(ip->ip_src) >> 16) & 0x0000ffff;
+			xsum += (ntohl(ip->ip_src) >>  0) & 0x0000ffff;
+			xsum += (ntohl(ip->ip_dst) >> 16) & 0x0000ffff;
+			xsum += (ntohl(ip->ip_dst) >>  0) & 0x0000ffff;
+
+			sumlen = ntohs(ip->udp_len);
+			sumptr = (ushort *) &(ip->udp_src);
+
+			while (sumlen > 1) {
+				ushort sumdata;
+
+				sumdata = *sumptr++;
+				xsum += ntohs(sumdata);
+				sumlen -= 2;
+			}
+			if (sumlen > 0) {
+				ushort sumdata;
+
+				sumdata = *(unsigned char *) sumptr;
+				sumdata = (sumdata << 8) & 0xff00;
+				xsum += sumdata;
+			}
+			while ((xsum >> 16) != 0) {
+				xsum = (xsum & 0x0000ffff) + ((xsum >> 16) & 0x0000ffff);
+			}
+			if ((xsum != 0x00000000) && (xsum != 0x0000ffff)) {
+				printf(" UDP wrong checksum %08x %08x\n", xsum, ntohs(ip->udp_xsum));
+				return;
+			}
+		}
+#endif
 
 #ifdef CONFIG_NETCONSOLE
 		nc_input_packet((uchar *)ip +IP_HDR_SIZE,
@@ -1426,6 +1506,14 @@ static int net_check_prereq (proto_t protocol)
 		}
 		goto common;
 #endif
+#if (CONFIG_COMMANDS & CFG_CMD_SNTP)
+	case SNTP:
+		if (NetNtpServerIP == 0) {
+			puts ("*** ERROR: NTP server address not given\n");
+			return (1);
+		}
+		goto common;
+#endif
 #if (CONFIG_COMMANDS & CFG_CMD_NFS)
 	case NFS:
 #endif
@@ -1435,8 +1523,8 @@ static int net_check_prereq (proto_t protocol)
 			puts ("*** ERROR: `serverip' not set\n");
 			return (1);
 		}
-#if (CONFIG_COMMANDS & CFG_CMD_PING)
-	      common:
+#if (CONFIG_COMMANDS & (CFG_CMD_PING | CFG_CMD_SNTP))
+    common:
 #endif
 
 		if (NetOurIP == 0) {
@@ -1493,11 +1581,11 @@ unsigned
 NetCksum(uchar * ptr, int len)
 {
 	ulong	xsum;
-	ushort *s = ptr;
+	ushort *p = ptr;
 
 	xsum = 0;
 	while (len-- > 0)
-		xsum += *s++;
+		xsum += *p++;
 	xsum = (xsum & 0xffff) + (xsum >> 16);
 	xsum = (xsum & 0xffff) + (xsum >> 16);
 	return (xsum & 0xffff);
@@ -1574,7 +1662,7 @@ NetSetIP(volatile uchar * xip, IPaddr_t dest, int dport, int sport, int len)
 	ip->ip_sum   = ~NetCksum((uchar *)ip, IP_HDR_SIZE_NO_UDP / 2);
 }
 
-void copy_filename (uchar *dst, uchar *src, int size)
+void copy_filename (char *dst, char *src, int size)
 {
 	if (*src && (*src == '"')) {
 		++src;

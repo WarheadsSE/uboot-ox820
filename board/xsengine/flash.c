@@ -27,10 +27,6 @@
 #include <common.h>
 #include <linux/byteorder/swab.h>
 
-#if defined CFG_JFFS_CUSTOM_PART
-#include <jffs2/jffs2.h>
-#endif
-
 #define SWAP(x)               __swab32(x)
 
 flash_info_t	flash_info[CFG_MAX_FLASH_BANKS]; /* info for FLASH chips */
@@ -39,80 +35,6 @@ flash_info_t	flash_info[CFG_MAX_FLASH_BANKS]; /* info for FLASH chips */
 static ulong flash_get_size (vu_long *addr, flash_info_t *info);
 static int write_word (flash_info_t *info, ulong dest, ulong data);
 static void flash_get_offsets (ulong base, flash_info_t *info);
-
-#if defined CFG_JFFS_CUSTOM_PART
-
-/*
- * jffs2_part_info - get information about a JFFS2 partition
- *
- * @part_num: number of the partition you want to get info about
- * @return:   struct part_info* in case of success, 0 if failure
- */
-
-static struct part_info part;
-static int current_part = -1;
-
-struct part_info* jffs2_part_info(int part_num) {
-	void *jffs2_priv_saved = part.jffs2_priv;
-
-	printf("jffs2_part_info: part_num=%i\n",part_num);
-
-	if (current_part == part_num)
-		return &part;
-
-	/* u-boot partition                                                 */
-	if(part_num==0){
-		memset(&part, 0, sizeof(part));
-
-		part.offset=(char*)0x00000000;
-		part.size=256*1024;
-
-		/* Mark the struct as ready */
-		current_part = part_num;
-
-		printf("part.offset = 0x%08x\n",(unsigned int)part.offset);
-		printf("part.size   = 0x%08x\n",(unsigned int)part.size);
-	}
-
-	/* primary OS+firmware partition                                    */
-	if(part_num==1){
-		memset(&part, 0, sizeof(part));
-
-		part.offset=(char*)0x00040000;
-		part.size=1024*1024;
-
-		/* Mark the struct as ready */
-		current_part = part_num;
-
-		printf("part.offset = 0x%08x\n",(unsigned int)part.offset);
-		printf("part.size   = 0x%08x\n",(unsigned int)part.size);
-	}
-
-	/* secondary OS+firmware partition                                  */
-	if(part_num==2){
-		memset(&part, 0, sizeof(part));
-
-		part.offset=(char*)0x00140000;
-		part.size=8*1024*1024;
-
-		/* Mark the struct as ready */
-		current_part = part_num;
-
-		printf("part.offset = 0x%08x\n",(unsigned int)part.offset);
-		printf("part.size   = 0x%08x\n",(unsigned int)part.size);
-	}
-
-	if (current_part == part_num) {
-		part.usr_priv = &current_part;
-		part.jffs2_priv = jffs2_priv_saved;
-		return &part;
-	}
-
-	printf("jffs2_part_info: end of partition table\n");
-	return 0;
-}
-#endif
-
 
 /*-----------------------------------------------------------------------
  */
@@ -179,13 +101,9 @@ void flash_print_info  (flash_info_t *info)
 	}
 
 	switch (info->flash_id & FLASH_TYPEMASK) {
-	case FLASH_AMLV128U:	printf ("AM29LV128ML (128Mbit, uniform sector size)\n");
-				break;
-	case FLASH_AMLV320U:	printf ("AM29LV320ML (32Mbit, uniform sector size)\n");
-				break;
 	case FLASH_AMLV640U:	printf ("AM29LV640ML (64Mbit, uniform sector size)\n");
 				break;
-	case FLASH_AMLV320B:	printf ("AM29LV320MB (32Mbit, bottom boot sect)\n");
+	case FLASH_S29GL064M:	printf ("S29GL064M (64Mbit, top boot sector size)\n");
 				break;
 	default:		printf ("Unknown Chip Type\n");
 				break;
@@ -252,17 +170,6 @@ static ulong flash_get_size (vu_long *addr, flash_info_t *info)
 		debug ("Mirror Bit flash: addr[14] = %08lX  addr[15] = %08lX\n",
 			addr[14], addr[15]);
 		switch(addr[14]) {
-		case AMD_ID_LV128U_2:
-			if (addr[15] != AMD_ID_LV128U_3) {
-				debug ("Chip: AMLV128U -> unknown\n");
-				info->flash_id = FLASH_UNKNOWN;
-			} else {
-				debug ("Chip: AMLV128U\n");
-				info->flash_id += FLASH_AMLV128U;
-				info->sector_count = 256;
-				info->size = 0x02000000;
-			}
-			break;				/* => 32 MB	*/
 		case AMD_ID_LV640U_2:
 			if (addr[15] != AMD_ID_LV640U_3) {
 				debug ("Chip: AMLV640U -> unknown\n");
@@ -274,17 +181,17 @@ static ulong flash_get_size (vu_long *addr, flash_info_t *info)
 				info->size = 0x01000000;
 			}
 			break;				/* => 16 MB	*/
-		case AMD_ID_LV320B_2:
-			if (addr[15] != AMD_ID_LV320B_3) {
-				debug ("Chip: AMLV320B -> unknown\n");
+		case AMD_ID_GL064MT_2:
+			if (addr[15] != AMD_ID_GL064MT_3) {
+				debug ("Chip: S29GL064M-R3 -> unknown\n");
 				info->flash_id = FLASH_UNKNOWN;
 			} else {
-				debug ("Chip: AMLV320B\n");
-				info->flash_id += FLASH_AMLV320B;
-				info->sector_count = 71;
-				info->size = 0x00800000;
+				debug ("Chip: S29GL064M-R3\n");
+				info->flash_id += FLASH_S29GL064M;
+				info->sector_count = 128;
+				info->size = 0x01000000;
 			}
-			break;				/* =>  8 MB	*/
+			break;				/* => 16 MB	*/
 		default:
 			debug ("Chip: *** unknown ***\n");
 			info->flash_id = FLASH_UNKNOWN;

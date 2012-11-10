@@ -159,11 +159,12 @@ reset:
 	str     r1, [r2]
 
 	/* make sure flash is visible at 0 */
+#if 0
 	ldr 	r2, =IXP425_EXP_CFG0
 	ldr     r1, [r2]
 	orr     r1, r1, #0x80000000
 	str     r1, [r2]
-
+#endif
 	mov 	r1, #CFG_SDR_CONFIG
 	ldr     r2, =IXP425_SDR_CONFIG
 	str     r1, [r2]
@@ -198,7 +199,7 @@ reset:
 	bne	111b
 
 	/* set mode register in sdram */
-	mov	r1, #1
+	mov	r1, #CFG_SDR_MODE_CONFIG
 	str	r1, [r4]
 	DELAY_FOR 0x4000, r0
 
@@ -260,6 +261,7 @@ reset:
 	orr	r0,r0,#0x13
 	msr	cpsr,r0
 
+#ifndef CONFIG_SKIP_RELOCATE_UBOOT
 relocate:				/* relocate U-Boot to RAM	    */
 	adr	r0, _start		/* r0 <- current position of code   */
 	ldr	r1, _TEXT_BASE		/* test if we run from flash or RAM */
@@ -276,6 +278,7 @@ copy_loop:
 	stmia	r1!, {r3-r10}		/* copy to   target address [r1]    */
 	cmp	r0, r2			/* until source end addreee [r2]    */
 	ble	copy_loop
+#endif	/* CONFIG_SKIP_RELOCATE_UBOOT */
 
 	/* Set up the stack						    */
 stack_setup:
@@ -295,7 +298,7 @@ clear_bss:
 clbss_l:str	r2, [r0]		/* clear loop...                    */
 	add	r0, r0, #4
 	cmp	r0, r1
-	bne	clbss_l
+	ble	clbss_l
 
 	ldr	pc, _start_armboot
 

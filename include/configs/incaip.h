@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2003
+ * (C) Copyright 2003-2005
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -55,38 +55,40 @@
 
 #define	CONFIG_EXTRA_ENV_SETTINGS					\
 	"nfsargs=setenv bootargs root=/dev/nfs rw "			\
-		"nfsroot=$(serverip):$(rootpath)\0"			\
+		"nfsroot=${serverip}:${rootpath}\0"			\
 	"ramargs=setenv bootargs root=/dev/ram rw\0"			\
-	"addip=setenv bootargs $(bootargs) "				\
-		"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask)"	\
-		":$(hostname):$(netdev):off\0"				\
-	"addmisc=setenv bootargs $(bootargs) "				\
-		"console=ttyS0,$(baudrate) "				\
-		"ethaddr=$(ethaddr) "					\
+	"addip=setenv bootargs ${bootargs} "				\
+		"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}"	\
+		":${hostname}:${netdev}:off\0"				\
+	"addmisc=setenv bootargs ${bootargs} "				\
+		"console=ttyS0,${baudrate} "				\
+		"ethaddr=${ethaddr} "					\
 		"panic=1\0"						\
 	"flash_nfs=run nfsargs addip addmisc;"				\
-		"bootm $(kernel_addr)\0"				\
+		"bootm ${kernel_addr}\0"				\
 	"flash_self=run ramargs addip addmisc;"				\
-		"bootm $(kernel_addr) $(ramdisk_addr)\0"		\
-	"net_nfs=tftp 80500000 $(bootfile);"				\
+		"bootm ${kernel_addr} ${ramdisk_addr}\0"		\
+	"net_nfs=tftp 80500000 ${bootfile};"				\
 		"run nfsargs addip addmisc;bootm\0"			\
 	"rootpath=/opt/eldk/mips_4KC\0"					\
 	"bootfile=/tftpboot/INCA/uImage\0"				\
 	"kernel_addr=B0040000\0"					\
 	"ramdisk_addr=B0100000\0"					\
 	"u-boot=/tftpboot/INCA/u-boot.bin\0"				\
-	"load=tftp 80500000 $(u-boot)\0"				\
+	"load=tftp 80500000 ${u-boot}\0"				\
 	"update=protect off 1:0-2;era 1:0-2;"				\
-		"cp.b 80500000 B0000000 $(filesize)\0"			\
+		"cp.b 80500000 B0000000 ${filesize}\0"			\
 	""
 #define CONFIG_BOOTCOMMAND	"run flash_self"
 
-#define CONFIG_COMMANDS		(CONFIG_CMD_DFL | \
-				 CFG_CMD_ASKENV	| \
-				 CFG_CMD_DHCP	| \
-				 CFG_CMD_ELF	| \
-				 CFG_CMD_JFFS2	| \
-				 CFG_CMD_PING	)
+#define CONFIG_COMMANDS	       (CONFIG_CMD_DFL	| \
+				CFG_CMD_ASKENV	| \
+				CFG_CMD_DHCP	| \
+				CFG_CMD_ELF	| \
+				CFG_CMD_JFFS2	| \
+				CFG_CMD_NFS	| \
+				CFG_CMD_PING	| \
+				CFG_CMD_SNTP	)
 #include <cmd_confdefs.h>
 
 /*
@@ -146,8 +148,26 @@
 #define CONFIG_NET_MULTI
 #define CONFIG_INCA_IP_SWITCH_AMDIX
 
-#define CFG_JFFS2_FIRST_BANK	1
-#define CFG_JFFS2_NUM_BANKS	1
+/*
+ * JFFS2 partitions
+ */
+/* No command line, one static partition, use all space on the device */
+#undef CONFIG_JFFS2_CMDLINE
+#define CONFIG_JFFS2_DEV		"nor1"
+#define CONFIG_JFFS2_PART_SIZE		0xFFFFFFFF
+#define CONFIG_JFFS2_PART_OFFSET	0x00000000
+
+/* mtdparts command line support */
+/*
+#define CONFIG_JFFS2_CMDLINE
+#define MTDIDS_DEFAULT		"nor0=INCA-IP Bank 0"
+#define MTDPARTS_DEFAULT	"mtdparts=INCA-IP Bank 0:192k(uboot)," \
+							"64k(env)," \
+							"768k(linux)," \
+							"1m@3m(rootfs)," \
+							"768k(linux2)," \
+							"3m@5m(rootfs2)"
+*/
 
 /*-----------------------------------------------------------------------
  * Cache Configuration

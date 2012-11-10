@@ -83,6 +83,10 @@ typedef volatile unsigned char	vu_char;
 #include <mpc85xx.h>
 #include <asm/immap_85xx.h>
 #endif
+#ifdef CONFIG_MPC83XX
+#include <mpc83xx.h>
+#include <asm/immap_83xx.h>
+#endif
 #ifdef	CONFIG_4xx
 #include <ppc4xx.h>
 #endif
@@ -214,8 +218,8 @@ extern ulong load_addr;		/* Default Load Address */
 /* common/cmd_nvedit.c */
 int	env_init     (void);
 void	env_relocate (void);
-char	*getenv	     (const uchar *);
-int	getenv_r     (uchar *name, uchar *buf, unsigned len);
+char	*getenv	     (char *);
+int	getenv_r     (char *name, char *buf, unsigned len);
 int	saveenv	     (void);
 #ifdef CONFIG_PPC		/* ARM version to be fixed! */
 void inline setenv   (char *, char *);
@@ -308,7 +312,8 @@ void	board_ether_init (void);
 #endif
 
 #if defined(CONFIG_RPXCLASSIC)	|| defined(CONFIG_MBX) || \
-    defined(CONFIG_IAD210)	|| defined(CONFIG_XPEDITE1K)
+    defined(CONFIG_IAD210)	|| defined(CONFIG_XPEDITE1K) || \
+    defined(CONFIG_METROBOX)    || defined(CONFIG_KAREF)
 void	board_get_enetaddr (uchar *addr);
 #endif
 
@@ -393,15 +398,24 @@ int	checkicache   (void);
 int	checkdcache   (void);
 void	upmconfig     (unsigned int, unsigned int *, unsigned int);
 ulong	get_tbclk     (void);
+void	reset_cpu     (ulong addr);
 
 /* $(CPU)/serial.c */
 int	serial_init   (void);
+void	serial_addr   (unsigned int);
 void	serial_setbrg (void);
 void	serial_putc   (const char);
+void	serial_putc_raw(const char);
 void	serial_puts   (const char *);
-void	serial_addr   (unsigned int);
 int	serial_getc   (void);
 int	serial_tstc   (void);
+
+void	_serial_setbrg (const int);
+void	_serial_putc   (const char, const int);
+void	_serial_putc_raw(const char, const int);
+void	_serial_puts   (const char *, const int);
+int	_serial_getc   (const int);
+int	_serial_tstc   (const int);
 
 /* $(CPU)/speed.c */
 int	get_clocks (void);
@@ -410,8 +424,9 @@ int	sdram_adjust_866 (void);
 int	adjust_sdram_tbs_8xx (void);
 #if defined(CONFIG_8260)
 int	prt_8260_clks (void);
-#endif
-#if defined(CONFIG_MPC5xxx)
+#elif defined(CONFIG_MPC83XX)
+int print_clock_conf(void);
+#elif defined(CONFIG_MPC5xxx)
 int	prt_mpc5xxx_clks (void);
 #endif
 #if defined(CONFIG_MPC8220)
@@ -588,5 +603,10 @@ void	show_boot_progress (int status);
 #endif
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
+#ifdef CONFIG_INIT_CRITICAL
+#error CONFIG_INIT_CRITICAL is depracted!
+#error Read section CONFIG_SKIP_LOWLEVEL_INIT in README.
+#endif
 
 #endif	/* __COMMON_H_ */

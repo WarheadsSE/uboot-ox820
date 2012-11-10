@@ -16,6 +16,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
+ *
+ ********************************************************************
+ * NOTE: This header file defines an interface to U-Boot. Including
+ * this (unmodified) header file in another file is considered normal
+ * use of U-Boot, and does *not* fall under the heading of "derived
+ * work".
+ ********************************************************************
  */
 
 #ifndef __U_BOOT_H__
@@ -28,7 +35,6 @@
  */
 
 #ifndef __ASSEMBLY__
-#include <linux/types.h>
 
 typedef struct bd_info {
 	unsigned long	bi_memstart;	/* start of DRAM memory */
@@ -45,6 +51,9 @@ typedef struct bd_info {
 #if defined(CONFIG_MPC5xxx)
 	unsigned long	bi_mbar_base;	/* base of internal registers */
 #endif
+#if defined(CONFIG_MPC83XX)
+	unsigned long	bi_immrbar;
+#endif
 #if defined(CONFIG_MPC8220)
 	unsigned long	bi_mbar_base;	/* base of internal registers */
 	unsigned long   bi_inpfreq;     /* Input Freq, In MHz */
@@ -59,7 +68,7 @@ typedef struct bd_info {
 	unsigned short	bi_ethspeed;	/* Ethernet speed in Mbps */
 	unsigned long	bi_intfreq;	/* Internal Freq, in MHz */
 	unsigned long	bi_busfreq;	/* Bus Freq, in MHz */
-#if defined(CONFIG_8260) || defined(CONFIG_MPC8560)
+#if defined(CONFIG_CPM2)
 	unsigned long	bi_cpmfreq;	/* CPM_CLK Freq, in MHz */
 	unsigned long	bi_brgfreq;	/* BRG_CLK Freq, in MHz */
 	unsigned long	bi_sccfreq;	/* SCC_CLK Freq, in MHz */
@@ -76,7 +85,7 @@ typedef struct bd_info {
     defined(CONFIG_405EP) || \
     defined(CONFIG_440)
 	unsigned char	bi_s_version[4];	/* Version of this structure */
-	unsigned char	bi_r_version[32];	/* Version of the ROM (IBM) */
+	unsigned char	bi_r_version[32];	/* Version of the ROM (AMCC) */
 	unsigned int	bi_procfreq;	/* CPU (Internal) Freq, in Hz */
 	unsigned int	bi_plb_busfreq;	/* PLB Bus speed, in Hz */
 	unsigned int	bi_pci_busfreq;	/* PCI Bus speed, in Hz */
@@ -98,17 +107,26 @@ typedef struct bd_info {
 	unsigned char   bi_enet3addr[6];
 #endif
 
-#if defined(CONFIG_405GP) || defined(CONFIG_405EP) || defined (CONFIG_440_GX)
+#if defined(CONFIG_405GP) || defined(CONFIG_405EP) || defined (CONFIG_440GX) || \
+    defined(CONFIG_440EP) || defined(CONFIG_440GR)
 	unsigned int	bi_opbfreq;		/* OPB clock in Hz */
 	int		bi_iic_fast[2];		/* Use fast i2c mode */
 #endif
 #if defined(CONFIG_NX823)
 	unsigned char	bi_sernum[8];
 #endif
-#if defined(CONFIG_440_GX)
+#if defined(CONFIG_4xx)
+#if defined(CONFIG_440GX)
 	int 		bi_phynum[4];           /* Determines phy mapping */
 	int 		bi_phymode[4];          /* Determines phy mode */
+#elif defined(CONFIG_405EP) || defined(CONFIG_440)
+	int 		bi_phynum[2];           /* Determines phy mapping */
+	int 		bi_phymode[2];          /* Determines phy mode */
+#else
+	int 		bi_phynum[1];           /* Determines phy mapping */
+	int 		bi_phymode[1];          /* Determines phy mode */
 #endif
+#endif /* defined(CONFIG_4xx) */
 } bd_t;
 
 #endif /* __ASSEMBLY__ */

@@ -98,6 +98,7 @@ void pci_405gp_init(struct pci_controller *hose)
 #if defined(CONFIG_CPCI405) || defined(CONFIG_PMC405)
 	unsigned long ptmla[2]    = {bd->bi_memstart, bd->bi_flashstart};
 	unsigned long ptmms[2]    = {~(bd->bi_memsize - 1) | 1, ~(bd->bi_flashsize - 1) | 1};
+	char *ptmla_str, *ptmms_str;
 #else
 	unsigned long ptmla[2]    = {CFG_PCI_PTM1LA, CFG_PCI_PTM2LA};
 	unsigned long ptmms[2]    = {CFG_PCI_PTM1MS, CFG_PCI_PTM2MS};
@@ -117,6 +118,22 @@ void pci_405gp_init(struct pci_controller *hose)
 #if (CONFIG_PCI_HOST == PCI_HOST_AUTO)
 	char *s;
 #endif
+#endif
+
+#if defined(CONFIG_CPCI405) || defined(CONFIG_PMC405)
+	ptmla_str = getenv("ptm1la");
+	ptmms_str = getenv("ptm1ms");
+	if(NULL != ptmla_str && NULL != ptmms_str ) {
+	        ptmla[0] = simple_strtoul (ptmla_str, NULL, 16);
+		ptmms[0] = simple_strtoul (ptmms_str, NULL, 16);
+	}
+
+	ptmla_str = getenv("ptm2la");
+	ptmms_str = getenv("ptm2ms");
+	if(NULL != ptmla_str && NULL != ptmms_str ) {
+	        ptmla[1] = simple_strtoul (ptmla_str, NULL, 16);
+		ptmms[1] = simple_strtoul (ptmms_str, NULL, 16);
+	}
 #endif
 
 	/*
@@ -414,27 +431,33 @@ static struct pci_controller ppc440_hose = {0};
 void pci_440_init (struct pci_controller *hose)
 {
 	int reg_num = 0;
-	unsigned long strap;
 
+#ifndef CONFIG_DISABLE_PISE_TEST
 	/*--------------------------------------------------------------------------+
 	 * The PCI initialization sequence enable bit must be set ... if not abort
 	 * pci setup since updating the bit requires chip reset.
 	 *--------------------------------------------------------------------------*/
-#if defined (CONFIG_440_GX)
+#if defined(CONFIG_440GX) || defined(CONFIG_440SP)
+	unsigned long strap;
+
 	mfsdr(sdr_sdstp1,strap);
-	if ( (strap & 0x00010000) == 0 ){
+	if ((strap & SDR0_SDSTP1_PISE_MASK) == 0) {
 		printf("PCI: SDR0_STRP1[PISE] not set.\n");
 		printf("PCI: Configuration aborted.\n");
 		return;
 	}
-#else
+#elif defined(CONFIG_440GP)
+	unsigned long strap;
+
 	strap = mfdcr(cpc0_strp1);
-	if( (strap & 0x00040000) == 0 ){
+	if ((strap & CPC0_STRP1_PISE_MASK) == 0) {
 		printf("PCI: CPC0_STRP1[PISE] not set.\n");
 		printf("PCI: Configuration aborted.\n");
 		return;
 	}
 #endif
+#endif /* CONFIG_DISABLE_PISE_TEST */
+
 	/*--------------------------------------------------------------------------+
 	 * PCI controller init
 	 *--------------------------------------------------------------------------*/
@@ -443,26 +466,26 @@ void pci_440_init (struct pci_controller *hose)
 
 	pci_set_region(hose->regions + reg_num++,
 		       0x00000000,
-			   PCIX0_IOBASE,
-			   0x10000,
-			   PCI_REGION_IO);
+		       PCIX0_IOBASE,
+		       0x10000,
+		       PCI_REGION_IO);
 
 	pci_set_region(hose->regions + reg_num++,
 		       CFG_PCI_TARGBASE,
-			   CFG_PCI_MEMBASE,
-			   0x10000000,
-			   PCI_REGION_MEM );
+		       CFG_PCI_MEMBASE,
+		       0x10000000,
+		       PCI_REGION_MEM );
 	hose->region_count = reg_num;
 
 	pci_setup_indirect(hose, PCIX0_CFGADR, PCIX0_CFGDATA);
 
 #if defined(CFG_PCI_PRE_INIT)
-    /* Let board change/modify hose & do initial checks */
-    if( pci_pre_init (hose) == 0 ){
-	printf("PCI: Board-specific initialization failed.\n");
-	printf("PCI: Configuration aborted.\n");
-	return;
-    }
+	/* Let board change/modify hose & do initial checks */
+	if (pci_pre_init (hose) == 0) {
+		printf("PCI: Board-specific initialization failed.\n");
+		printf("PCI: Configuration aborted.\n");
+		return;
+	}
 #endif
 
 	pci_register_hose( hose );
@@ -473,15 +496,15 @@ void pci_440_init (struct pci_controller *hose)
 #if defined(CFG_PCI_TARGET_INIT)
 	pci_target_init(hose);                /* Let board setup pci target */
 #else
-    out16r( PCIX0_SBSYSVID, CFG_PCI_SUBSYS_VENDORID );
-    out16r( PCIX0_SBSYSID, CFG_PCI_SUBSYS_ID );
-    out16r( PCIX0_CLS, 0x00060000 ); /* Bridge, host bridge */
+	out16r( PCIX0_SBSYSVID, CFG_PCI_SUBSYS_VENDORID );
+	out16r( PCIX0_SBSYSID, CFG_PCI_SUBSYS_ID );
+	out16r( PCIX0_CLS, 0x00060000 ); /* Bridge, host bridge */
 #endif
 
-#if defined(CONFIG_440_GX)
+#if defined(CONFIG_440GX)
 	out32r( PCIX0_BRDGOPT1, 0x04000060 );               /* PLB Rq pri highest   */
 	out32r( PCIX0_BRDGOPT2, in32(PCIX0_BRDGOPT2) | 0x83 ); /* Enable host config, clear Timeout, ensure int src1  */
-#else
+#elif defined(PCIX0_BRDGOPT1)
 	out32r( PCIX0_BRDGOPT1, 0x10000060 );               /* PLB Rq pri highest   */
 	out32r( PCIX0_BRDGOPT2, in32(PCIX0_BRDGOPT2) | 1 ); /* Enable host config   */
 #endif
@@ -501,22 +524,24 @@ void pci_440_init (struct pci_controller *hose)
 	out32r( PCIX0_POM0PCIAL, CFG_PCI_MEMBASE );
 	out32r( PCIX0_POM0PCIAH, 0x00000000 );
 	out32r( PCIX0_POM0SA, 0xf0000001 ); /* 256MB, enabled */
-    out32r( PCIX0_STS, in32r( PCIX0_STS ) & ~0x0000fff8 );
+	out32r( PCIX0_STS, in32r( PCIX0_STS ) & ~0x0000fff8 );
 #endif
 
 	/*--------------------------------------------------------------------------+
 	 * PCI host configuration -- we don't make any assumptions here ... the
-     * _board_must_indicate_ what to do -- there's just too many runtime
-     * scenarios in environments like cPCI, PPMC, etc. to make a determination
-     * based on hard-coded values or state of arbiter enable.
+	 * _board_must_indicate_ what to do -- there's just too many runtime
+	 * scenarios in environments like cPCI, PPMC, etc. to make a determination
+	 * based on hard-coded values or state of arbiter enable.
 	 *--------------------------------------------------------------------------*/
-    if( is_pci_host(hose) ){
+	if (is_pci_host(hose)) {
 #ifdef CONFIG_PCI_SCAN_SHOW
-	printf("PCI:   Bus Dev VenId DevId Class Int\n");
+		printf("PCI:   Bus Dev VenId DevId Class Int\n");
 #endif
-	out16r( PCIX0_CMD, in16r( PCIX0_CMD ) | PCI_COMMAND_MASTER);
-	hose->last_busno = pci_hose_scan(hose);
-    }
+#if !defined(CONFIG_440EP) && !defined(CONFIG_440GR)
+		out16r( PCIX0_CMD, in16r( PCIX0_CMD ) | PCI_COMMAND_MASTER);
+#endif
+		hose->last_busno = pci_hose_scan(hose);
+	}
 }
 
 

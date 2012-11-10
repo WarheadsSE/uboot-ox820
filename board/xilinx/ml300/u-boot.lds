@@ -65,7 +65,7 @@ SECTIONS
     cpu/ppc4xx/serial.o	(.text)
     cpu/ppc4xx/cpu_init.o	(.text)
     cpu/ppc4xx/speed.o	(.text)
-    cpu/ppc4xx/405gp_enet.o	(.text)
+    cpu/ppc4xx/4xx_enet.o	(.text)
     common/dlmalloc.o	(.text)
     lib_generic/crc32.o		(.text)
     lib_ppc/extable.o	(.text)
@@ -85,6 +85,7 @@ SECTIONS
     *(.rodata)
     *(.rodata1)
     *(.rodata.str1.4)
+    *(.eh_frame)
   }
   .fini      : { *(.fini)    } =0
   .ctors     : { *(.ctors)   }
@@ -117,11 +118,13 @@ SECTIONS
   _edata  =  .;
   PROVIDE (edata = .);
 
+  . = .;
   __u_boot_cmd_start = .;
   .u_boot_cmd : { *(.u_boot_cmd) }
   __u_boot_cmd_end = .;
 
 
+  . = .;
   __start___ex_table = .;
   __ex_table : { *(__ex_table) }
   __stop___ex_table = .;

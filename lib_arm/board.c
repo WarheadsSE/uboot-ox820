@@ -208,7 +208,7 @@ init_fnc_t *init_sequence[] = {
 	display_banner,		/* say that we are here */
 	dram_init,		/* configure available RAM banks */
 	display_dram_config,
-#if defined(CONFIG_VCMA9)
+#if defined(CONFIG_VCMA9) || defined (CONFIG_CMC_PU2)
 	checkboard,
 #endif
 	NULL,
@@ -316,6 +316,10 @@ void start_armboot (void)
 
 	devices_init ();	/* get the devices list going. */
 
+#ifdef CONFIG_CMC_PU2
+	load_sernum_ethaddr ();
+#endif /* CONFIG_CMC_PU2 */
+
 	jumptable_init ();
 
 	console_init_r ();	/* fully init console as a device */
@@ -352,7 +356,12 @@ void start_armboot (void)
 #ifdef BOARD_LATE_INIT
 	board_late_init ();
 #endif
-
+#if (CONFIG_COMMANDS & CFG_CMD_NET)
+#if defined(CONFIG_NET_MULTI)
+	puts ("Net:   ");
+#endif
+	eth_initialize(gd->bd);
+#endif
 	/* main_loop() can return to retry autoboot, if so just run it again. */
 	for (;;) {
 		main_loop ();

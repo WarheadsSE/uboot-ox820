@@ -58,7 +58,7 @@ static char default_filename[DEFAULT_NAME_LEN];
 static char *tftp_filename;
 
 #ifdef CFG_DIRECT_FLASH_TFTP
-extern flash_info_t flash_info[CFG_MAX_FLASH_BANKS];
+extern flash_info_t flash_info[];
 #endif
 
 static __inline__ void
@@ -78,7 +78,7 @@ store_block (unsigned block, uchar * src, unsigned len)
 	}
 
 	if (rc) { /* Flash is destination for this packet */
-		rc = flash_write ((uchar *)src, (ulong)(load_addr+offset), len);
+		rc = flash_write ((char *)src, (ulong)(load_addr+offset), len);
 		if (rc) {
 			flash_perror (rc);
 			NetState = NETLOOP_FAIL;
@@ -313,14 +313,16 @@ TftpTimeout (void)
 void
 TftpStart (void)
 {
-	if (BootFile[0] == '\0') {
-		IPaddr_t OurIP = ntohl(NetOurIP);
+#ifdef CONFIG_TFTP_PORT
+	char *ep;             /* Environment pointer */
+#endif
 
+	if (BootFile[0] == '\0') {
 		sprintf(default_filename, "%02lX%02lX%02lX%02lX.img",
-			OurIP & 0xFF,
-			(OurIP >>  8) & 0xFF,
-			(OurIP >> 16) & 0xFF,
-			(OurIP >> 24) & 0xFF	);
+			NetOurIP & 0xFF,
+			(NetOurIP >>  8) & 0xFF,
+			(NetOurIP >> 16) & 0xFF,
+			(NetOurIP >> 24) & 0xFF	);
 		tftp_filename = default_filename;
 
 		printf ("*** Warning: no boot file name; using '%s'\n",
@@ -366,7 +368,16 @@ TftpStart (void)
 	TftpServerPort = WELL_KNOWN_PORT;
 	TftpTimeoutCount = 0;
 	TftpState = STATE_RRQ;
+	/* Use a pseudo-random port unless a specific port is set */
 	TftpOurPort = 1024 + (get_timer(0) % 3072);
+#ifdef CONFIG_TFTP_PORT
+	if ((ep = getenv("tftpdstp")) != NULL) {
+		TftpServerPort = simple_strtol(ep, NULL, 10);
+	}
+	if ((ep = getenv("tftpsrcp")) != NULL) {
+		TftpOurPort= simple_strtol(ep, NULL, 10);
+	}
+#endif
 	TftpBlock = 0;
 
 	/* zero out server ether in case the server ip has changed */

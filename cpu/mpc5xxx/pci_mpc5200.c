@@ -49,7 +49,21 @@ static int mpc5200_read_config_dword(struct pci_controller *hose,
 	*(volatile u32 *)MPC5XXX_PCI_CAR = (1 << 31) | dev | offset;
 	eieio();
 	udelay(10);
+#if (defined CONFIG_PF5200 || defined CONFIG_CPCI5200)
+	if (dev & 0x00ff0000) {
+		u32 val;
+		val  = in_le16((volatile u16 *)(CONFIG_PCI_IO_PHYS+2));
+		udelay(10);
+		val = val << 16;
+		val |= in_le16((volatile u16 *)(CONFIG_PCI_IO_PHYS+0));
+		*value = val;
+	} else {
+		*value = in_le32((volatile u32 *)CONFIG_PCI_IO_PHYS);
+	}
+	udelay(10);
+#else
 	*value = in_le32((volatile u32 *)CONFIG_PCI_IO_PHYS);
+#endif
 	eieio();
 	*(volatile u32 *)MPC5XXX_PCI_CAR = 0;
 	udelay(10);
@@ -131,7 +145,11 @@ void pci_mpc5xxx_init (struct pci_controller *hose)
 
 	/* Disable interrupts from PCI controller */
 	*(vu_long *)MPC5XXX_PCI_GSCR &= ~(7 << 12);
-	*(vu_long *)MPC5XXX_PCI_ICR &= ~(7 << 24);
+	*(vu_long *)MPC5XXX_PCI_ICR  &= ~(7 << 24);
+
+	/* Set PCI retry counter to 0 = infinite retry. */
+	/* The default of 255 is too short for slow devices. */
+	*(vu_long *)MPC5XXX_PCI_ICR &= 0xFFFFFF00;
 
 	/* Disable initiator windows */
 	*(vu_long *)MPC5XXX_PCI_IWCR = 0;

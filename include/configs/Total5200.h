@@ -100,6 +100,7 @@
 #define CONFIG_PCI_IO_SIZE	0x01000000
 
 #define CONFIG_NET_MULTI	1
+#define CONFIG_MII		1
 #define CONFIG_EEPRO100		1
 #define CFG_RX_ETH_BUFFER	8  /* use 8 rx buffer on eepro100  */
 #define CONFIG_NS8382X		1
@@ -108,6 +109,7 @@
 
 #else	/* MGT5100 */
 
+#define CONFIG_MII		1
 #define ADD_PCI_CMD		0  /* no CFG_CMD_PCI */
 
 #endif
@@ -161,16 +163,16 @@
 #define	CONFIG_EXTRA_ENV_SETTINGS					\
 	"netdev=eth0\0"							\
 	"nfsargs=setenv bootargs root=/dev/nfs rw "			\
-		"nfsroot=$(serverip):$(rootpath)\0"			\
+		"nfsroot=${serverip}:${rootpath}\0"			\
 	"ramargs=setenv bootargs root=/dev/ram rw\0"			\
-	"addip=setenv bootargs $(bootargs) "				\
-		"ip=$(ipaddr):$(serverip):$(gatewayip):$(netmask)"	\
-		":$(hostname):$(netdev):off panic=1\0"			\
+	"addip=setenv bootargs ${bootargs} "				\
+		"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}"	\
+		":${hostname}:${netdev}:off panic=1\0"			\
 	"flash_nfs=run nfsargs addip;"					\
-		"bootm $(kernel_addr)\0"				\
+		"bootm ${kernel_addr}\0"				\
 	"flash_self=run ramargs addip;"					\
-		"bootm $(kernel_addr) $(ramdisk_addr)\0"		\
-	"net_nfs=tftp 200000 $(bootfile);run nfsargs addip;bootm\0"	\
+		"bootm ${kernel_addr} ${ramdisk_addr}\0"		\
+	"net_nfs=tftp 200000 ${bootfile};run nfsargs addip;bootm\0"	\
 	"rootpath=/opt/eldk/ppc_82xx\0"					\
 	"bootfile=/tftpboot/MPC5200/uImage\0"				\
 	""

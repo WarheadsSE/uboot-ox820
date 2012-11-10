@@ -1,4 +1,7 @@
 /*
+ * (C) Copyright 2004-2005
+ * Wolfgang Denk, DENX Software Engineering, <wd@denx.de>
+ *
  * (C) Copyright 2004
  * Vincent Dubey, Xa SA, vincent.dubey@xa-ch.com
  *
@@ -34,16 +37,6 @@
 #define __CONFIG_H
 
 /*
- * If we are developing, we might want to start armboot from ram
- * so we MUST NOT initialize critical regs like mem-timing ...
- */
-#define CONFIG_INIT_CRITICAL		/* undef for developing */
-
-/*
-#undef CONFIG_INIT_CRITICAL
-*/
-
-/*
  * High Level Configuration Options
  * (easy to change)
  */
@@ -65,11 +58,18 @@
 /* allow to overwrite serial and ethaddr */
 #define CONFIG_ENV_OVERWRITE
 
+#define	CONFIG_TIMESTAMP		/* Print image info with timestamp */
+
 #define CONFIG_BAUDRATE		115200
 
 #define CFG_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 } /* valid baudrates */
 
-#define CONFIG_COMMANDS		((CONFIG_CMD_DFL | CFG_CMD_DIAG | CFG_CMD_SDRAM) & ~CFG_CMD_DTT)
+#define CONFIG_COMMANDS	       ((CONFIG_CMD_DFL & ~CFG_CMD_DTT) | \
+				CFG_CMD_DHCP	| \
+				CFG_CMD_DIAG	| \
+				CFG_CMD_NFS	| \
+				CFG_CMD_SDRAM	| \
+				CFG_CMD_SNTP	)
 
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
 #include <cmd_confdefs.h>
@@ -236,7 +236,7 @@
  * GP30 == SDATA_OUT is 0
  * GP81 == NSSPCLK   is 0
  */
-#define CFG_GPCR0_VAL		0x40C31868
+#define CFG_GPCR0_VAL		0x40C31848
 #define CFG_GPCR1_VAL		0x00000000
 #define CFG_GPCR2_VAL		0x00020000
 
@@ -455,10 +455,10 @@
  * [14:12] 010  - RRR2: CS deselect to CS time: 2*(2*MemClk) = 40 ns
  * [11:08] 0010 - RDN2: Address to data valid in bursts: (2+1)*MemClk = 30 ns
  * [07:04] 0110 - RDF2: Address for first access: (6+1)*MemClk = 70 ns
- * [03]    0    - 32 Bit bus width
+ * [03]    1    - 16 Bit bus width
  * [02:00] 100  - variable latency I/O
  */
-#define CFG_MSC1_VAL		0x1224A264
+#define CFG_MSC1_VAL		0x1224A26C
 
 /* This is the configuration for nCS4/5 -> LAN
  * configuration for nCS5:

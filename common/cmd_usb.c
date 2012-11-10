@@ -27,19 +27,15 @@
 
 #include <common.h>
 #include <command.h>
+#include <asm/byteorder.h>
 
 #if (CONFIG_COMMANDS & CFG_CMD_USB)
 
 #include <usb.h>
 
-#undef	CMD_USB_DEBUG
-
-#ifdef	CMD_USB_DEBUG
-#define	CMD_USB_PRINTF(fmt,args...)	printf (fmt ,##args)
-#else
-#define CMD_USB_PRINTF(fmt,args...)
-#endif
+#ifdef CONFIG_USB_STORAGE
 static int usb_stor_curr_dev=-1; /* current device */
+#endif
 
 /* some display routines (info command) */
 char * usb_get_class_desc(unsigned char dclass)
@@ -316,9 +312,8 @@ int do_usbboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	char *boot_device = NULL;
 	char *ep;
-	int dev, part=0, rcode;
-	ulong cnt;
-	ulong addr;
+	int dev, part=1, rcode;
+	ulong addr, cnt, checksum;
 	disk_partition_t info;
 	image_header_t *hdr;
 	block_dev_desc_t *stor_dev;
@@ -367,15 +362,15 @@ int do_usbboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	if (get_partition_info (stor_dev, part, &info)) {
 		/* try to boot raw .... */
-		strncpy(&info.type[0], BOOT_PART_TYPE, sizeof(BOOT_PART_TYPE));
-		strncpy(&info.name[0], "Raw", 4);
+		strncpy((char *)&info.type[0], BOOT_PART_TYPE, sizeof(BOOT_PART_TYPE));
+		strncpy((char *)&info.name[0], "Raw", 4);
 		info.start=0;
 		info.blksz=0x200;
 		info.size=2880;
 		printf("error reading partinfo...try to boot raw\n");
 	}
-	if ((strncmp(info.type, BOOT_PART_TYPE, sizeof(info.type)) != 0) &&
-	    (strncmp(info.type, BOOT_PART_COMP, sizeof(info.type)) != 0)) {
+	if ((strncmp((char *)info.type, BOOT_PART_TYPE, sizeof(info.type)) != 0) &&
+	    (strncmp((char *)info.type, BOOT_PART_COMP, sizeof(info.type)) != 0)) {
 		printf ("\n** Invalid partition type \"%.32s\""
 			" (expect \"" BOOT_PART_TYPE "\")\n",
 			info.type);
@@ -385,7 +380,7 @@ int do_usbboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		"Name: %.32s  Type: %.32s\n",
 		dev, part, info.name, info.type);
 
-	printf ("First Block: %ld,  # of blocks: %ld, Block Size: %ld\n",
+	debug ("First Block: %ld,  # of blocks: %ld, Block Size: %ld\n",
 		info.start, info.size, info.blksz);
 
 	if (stor_dev->block_read(dev, info.start, 1, (ulong *)addr) != 1) {
@@ -395,16 +390,26 @@ int do_usbboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	hdr = (image_header_t *)addr;
 
-	if (hdr->ih_magic == IH_MAGIC) {
-		print_image_hdr (hdr);
-		cnt = (hdr->ih_size + sizeof(image_header_t));
-		cnt += info.blksz - 1;
-		cnt /= info.blksz;
-		cnt -= 1;
-	} else {
+	if (ntohl(hdr->ih_magic) != IH_MAGIC) {
 		printf("\n** Bad Magic Number **\n");
 		return 1;
 	}
+
+	checksum = ntohl(hdr->ih_hcrc);
+	hdr->ih_hcrc = 0;
+
+	if (crc32 (0, (uchar *)hdr, sizeof(image_header_t)) != checksum) {
+		puts ("\n** Bad Header Checksum **\n");
+		return 1;
+	}
+	hdr->ih_hcrc = htonl(checksum);	/* restore checksum for later use */
+
+	print_image_hdr (hdr);
+
+	cnt = (ntohl(hdr->ih_size) + sizeof(image_header_t));
+	cnt += info.blksz - 1;
+	cnt /= info.blksz;
+	cnt -= 1;
 
 	if (stor_dev->block_read (dev, info.start+1, cnt,
 		      (ulong *)(addr+info.blksz)) != cnt) {
@@ -439,13 +444,20 @@ int do_usb (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	int i;
 	struct usb_device *dev = NULL;
+#ifdef CONFIG_USB_STORAGE
 	block_dev_desc_t *stor_dev;
+#endif
 
-	if ((strncmp(argv[1],"reset",5) == 0) ||
-		 (strncmp(argv[1],"start",5) == 0)){
+	if ((strncmp(argv[1], "reset", 5) == 0) ||
+		 (strncmp(argv[1], "start", 5) == 0)){
 		usb_stop();
 		printf("(Re)start USB...\n");
-		usb_init();
+		i = usb_init();
+#ifdef CONFIG_USB_STORAGE
+		/* try to recognize storage devices immediately */
+		if (i >= 0)
+	 		usb_stor_curr_dev = usb_stor_scan(1);
+#endif
 		return 0;
 	}
 	if (strncmp(argv[1],"stop",4) == 0) {
@@ -506,15 +518,18 @@ int do_usb (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return 0;
 	}
 #ifdef CONFIG_USB_STORAGE
-	if (strncmp(argv[1],"scan",4) == 0) {
-		printf("Scan for storage device:\n");
-	 	usb_stor_curr_dev=usb_stor_scan(1);
-		if (usb_stor_curr_dev==-1) {
-			printf("No device found. Not initialized?\n");
-			return 1;
-		}
+	if (strncmp(argv[1], "scan", 4) == 0) {
+		printf("  NOTE: this command is obsolete and will be phased out\n");
+		printf("  please use 'usb storage' for USB storage devices information\n\n");
+		usb_stor_info();
 		return 0;
 	}
+
+	if (strncmp(argv[1], "stor", 4) == 0) {
+		usb_stor_info();
+		return 0;
+	}
+
 	if (strncmp(argv[1],"part",4) == 0) {
 		int devno, ok;
 		for (ok=0, devno=0; devno<USB_MAX_STOR_DEV; ++devno) {
@@ -553,8 +568,8 @@ int do_usb (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			return 1;
 		}
 	}
-	if (strcmp(argv[1],"dev") == 0) {
-		if (argc==3) {
+	if (strncmp(argv[1], "dev", 3) == 0) {
+		if (argc == 3) {
 			int dev = (int)simple_strtoul(argv[2], NULL, 10);
 			printf ("\nUSB device %d: ", dev);
 			if (dev >= USB_MAX_STOR_DEV) {
@@ -601,8 +616,8 @@ U_BOOT_CMD(
 	"usb stop [f]  - stop USB [f]=force stop\n"
 	"usb tree  - show USB device tree\n"
 	"usb info [dev] - show available USB devices\n"
-	"usb scan  - (re-)scan USB bus for storage devices\n"
-	"usb device [dev] - show or set current USB storage device\n"
+	"usb storage  - show details of USB storage devices\n"
+	"usb dev [dev] - show or set current USB storage device\n"
 	"usb part [dev] - print partition table of one or all USB storage devices\n"
 	"usb read addr blk# cnt - read `cnt' blocks starting at block `blk#'\n"
 	"    to memory address `addr'\n"

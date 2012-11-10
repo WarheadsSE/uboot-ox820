@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2000-2004
+ * (C) Copyright 2000-2005
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  * Klaus Heydeck, Kieback & Peter GmbH & Co KG, heydeck@kieback-peter.de
  *
@@ -48,8 +48,6 @@
 #define CONFIG_BOOTDELAY	1	/* autoboot after 1 second	*/
 #endif
 
-#define CONFIG_CLOCKS_IN_MHZ	1	/* clocks passsed to Linux in MHz */
-
 #define CONFIG_BOARD_TYPES	1	/* support board types		*/
 
 
@@ -63,16 +61,16 @@
  "run addhw; diskboot 200000 2:1; bootm 200000\0"				\
 "nfs_boot=dhcp; run nfsargs addip addhw; bootm 200000\0"			\
 "panic_boot=echo No Bootdevice !!! reset\0"					\
-"nfsargs=setenv bootargs root=/dev/nfs rw nfsroot=$(serverip):$(rootpath)\0"	\
+"nfsargs=setenv bootargs root=/dev/nfs rw nfsroot=${serverip}:${rootpath}\0"	\
 "ramargs=setenv bootargs root=/dev/ram rw\0"					\
-"addip=setenv bootargs $(bootargs) ip=$(ipaddr):$(serverip):$(gatewayip)"	\
- ":$(netmask):$(hostname):$(netdev):off\0"					\
-"addhw=setenv bootargs $(bootargs) hw=$(hw) key1=$(key1) panic=1\0"		\
+"addip=setenv bootargs ${bootargs} ip=${ipaddr}:${serverip}:${gatewayip}"	\
+ ":${netmask}:${hostname}:${netdev}:off\0"					\
+"addhw=setenv bootargs ${bootargs} hw=${hw} key1=${key1} panic=1\0"		\
 "netdev=eth0\0"									\
 "contrast=55\0"									\
 "silent=1\0"									\
 "load=tftp 200000 bootloader-4k.bitmap;tftp 100000 bootloader-4k.bin\0"		\
-"update=protect off 1:0-7;era 1:0-7;cp.b 100000 40000000 $(filesize);"		\
+"update=protect off 1:0-7;era 1:0-7;cp.b 100000 40000000 ${filesize};"		\
  "cp.b 200000 40050000 14000\0"
 
 #define CONFIG_BOOTCOMMAND  \
@@ -143,6 +141,7 @@
 #define CONFIG_RTC_PCF8563		/* use Philips PCF8563 RTC	*/
 
 #define CFG_DISCOVER_PHY
+#define CONFIG_MII
 
 #if 0
 #define CONFIG_ETHADDR                  00:0B:64:00:00:00 /* our OUI from IEEE */
@@ -166,11 +165,13 @@
 #endif
 
 #define CONFIG_COMMANDS	      ( CONFIG_CMD_DFL	| \
+				CFG_CMD_DATE	| \
 				CFG_CMD_DHCP	| \
 				CFG_CMD_I2C	| \
-				CFG_CMD_DATE	| \
+				CFG_CMD_IDE	| \
+				CFG_CMD_NFS	| \
 				CFG_CMD_POST_DIAG	| \
-				CFG_CMD_IDE	)
+				CFG_CMD_SNTP	)
 
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
 #include <cmd_confdefs.h>

@@ -30,12 +30,6 @@
 #define __CONFIG_H
 
 /*
- * If we are developing, we might want to start armboot from ram
- * so we MUST NOT initialize critical regs like mem-timing ...
- */
-#define CONFIG_INIT_CRITICAL		/* undef for developing */
-
-/*
  * High Level Configuration Options
  * (easy to change)
  */
@@ -144,7 +138,7 @@
 
 #define CONFIG_BOOTDELAY	5
 /* autoboot (do NOT change this set environment variable "bootdelay" to -1 instead) */
-#define CONFIG_BOOT_RETRY_TIME	-10	/* feature is avaiable but not enabled */
+/* #define CONFIG_BOOT_RETRY_TIME	-10	/XXX* feature is available but not enabled */
 #define CONFIG_ZERO_BOOTDELAY_CHECK  	/* check console even if bootdelay = 0 */
 
 #define CONFIG_NETMASK          255.255.255.0

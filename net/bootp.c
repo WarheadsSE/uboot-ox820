@@ -330,7 +330,7 @@ BootpHandler(uchar * pkt, unsigned dest, unsigned src, unsigned len)
 
 	/* Retrieve extended information (we must parse the vendor area) */
 	if (NetReadLong((ulong*)&bp->bp_vend[0]) == htonl(BOOTP_VENDOR_MAGIC))
-		BootpVendorProcess(&bp->bp_vend[4], len);
+		BootpVendorProcess((uchar *)&bp->bp_vend[4], len);
 
 	NetSetTimeout(0, (thand_f *)0);
 
@@ -387,7 +387,7 @@ static int DhcpExtended (u8 * e, int message_type, IPaddr_t ServerID, IPaddr_t R
 	u8 *x;
 #endif
 #if (CONFIG_BOOTP_MASK & CONFIG_BOOTP_SEND_HOSTNAME)
-	uchar *hostname;
+	char *hostname;
 #endif
 
 	*e++ = 99;		/* RFC1048 Magic Cookie */
@@ -448,6 +448,10 @@ static int DhcpExtended (u8 * e, int message_type, IPaddr_t ServerID, IPaddr_t R
 	*e++  = 1;		/* Subnet Mask */
 	*cnt += 1;
 #endif
+#if (CONFIG_BOOTP_MASK & CONFIG_BOOTP_TIMEOFFSET)
+	*e++  = 2;
+	*cnt += 1;
+#endif
 #if (CONFIG_BOOTP_MASK & CONFIG_BOOTP_GATEWAY)
 	*e++  = 3;		/* Router Option */
 	*cnt += 1;
@@ -470,6 +474,10 @@ static int DhcpExtended (u8 * e, int message_type, IPaddr_t ServerID, IPaddr_t R
 #endif
 #if (CONFIG_BOOTP_MASK & CONFIG_BOOTP_NISDOMAIN)
 	*e++  = 40;		/* NIS Domain name request */
+	*cnt += 1;
+#endif
+#if (CONFIG_BOOTP_MASK & CONFIG_BOOTP_NTPSERVER)
+	*e++  = 42;
 	*cnt += 1;
 #endif
 	*e++  = 255;		/* End of the list */
@@ -570,7 +578,7 @@ BootpRequest (void)
 	unsigned char bi_enetaddr[6];
 	int   reg;
 	char  *e,*s;
-	uchar tmp[64];
+	char tmp[64];
 	ulong tst1, tst2, sum, m_mask, m_value = 0;
 
 	if (BootpTry ==0) {
@@ -671,9 +679,9 @@ BootpRequest (void)
 
 	/* Request additional information from the BOOTP/DHCP server */
 #if (CONFIG_COMMANDS & CFG_CMD_DHCP)
-	ext_len = DhcpExtended(bp->bp_vend, DHCP_DISCOVER, 0, 0);
+	ext_len = DhcpExtended((u8 *)bp->bp_vend, DHCP_DISCOVER, 0, 0);
 #else
-	ext_len = BootpExtended(bp->bp_vend);
+	ext_len = BootpExtended((u8 *)bp->bp_vend);
 #endif	/* CFG_CMD_DHCP */
 
 	/*
@@ -718,6 +726,12 @@ static void DhcpOptionsProcess (uchar * popt)
 		case 1:
 			NetCopyIP (&NetOurSubnetMask, (popt + 2));
 			break;
+#if (CONFIG_COMMANDS & CFG_CMD_SNTP) && (CONFIG_BOOTP_MASK & CONFIG_BOOTP_TIMEOFFSET)
+		case 2:		/* Time offset	*/
+			NetCopyLong (&NetTimeOffset, (ulong *) (popt + 2));
+			NetTimeOffset = ntohl (NetTimeOffset);
+			break;
+#endif
 		case 3:
 			NetCopyIP (&NetOurGatewayIP, (popt + 2));
 			break;
@@ -741,6 +755,11 @@ static void DhcpOptionsProcess (uchar * popt)
 			memcpy (&NetOurRootPath, popt + 2, size);
 			NetOurRootPath[size] = 0;
 			break;
+#if (CONFIG_COMMANDS & CFG_CMD_SNTP) && (CONFIG_BOOTP_MASK & CONFIG_BOOTP_NTPSERVER)
+		case 42:	/* NTP server IP */
+			NetCopyIP (&NetNtpServerIP, (popt + 2));
+			break;
+#endif
 		case 51:
 			NetCopyLong (&dhcp_leasetime, (ulong *) (popt + 2));
 			break;
@@ -817,7 +836,7 @@ static void DhcpSendRequestPkt(Bootp_t *bp_offer)
 	 * Copy options from OFFER packet if present
 	 */
 	NetCopyIP(&OfferedIP, &bp->bp_yiaddr);
-	extlen = DhcpExtended(bp->bp_vend, DHCP_REQUEST, NetDHCPServerIP, OfferedIP);
+	extlen = DhcpExtended((u8 *)bp->bp_vend, DHCP_REQUEST, NetDHCPServerIP, OfferedIP);
 
 	pktlen = BOOTP_SIZE - sizeof(bp->bp_vend) + extlen;
 	iplen = BOOTP_HDR_SIZE - sizeof(bp->bp_vend) + extlen;
@@ -863,7 +882,7 @@ DhcpHandler(uchar * pkt, unsigned dest, unsigned src, unsigned len)
 			dhcp_state = REQUESTING;
 
 			if (NetReadLong((ulong*)&bp->bp_vend[0]) == htonl(BOOTP_VENDOR_MAGIC))
-				DhcpOptionsProcess(&bp->bp_vend[4]);
+				DhcpOptionsProcess((u8 *)&bp->bp_vend[4]);
 
 			BootpCopyNetParams(bp); /* Store net params from reply */
 
@@ -878,11 +897,11 @@ DhcpHandler(uchar * pkt, unsigned dest, unsigned src, unsigned len)
 	case REQUESTING:
 		debug ("DHCP State: REQUESTING\n");
 
-		if ( DhcpMessageType(bp->bp_vend) == DHCP_ACK ) {
+		if ( DhcpMessageType((u8 *)bp->bp_vend) == DHCP_ACK ) {
 			char *s;
 
 			if (NetReadLong((ulong*)&bp->bp_vend[0]) == htonl(BOOTP_VENDOR_MAGIC))
-				DhcpOptionsProcess(&bp->bp_vend[4]);
+				DhcpOptionsProcess((u8 *)&bp->bp_vend[4]);
 			BootpCopyNetParams(bp); /* Store net params from reply */
 			dhcp_state = BOUND;
 			puts ("DHCP client bound to address ");

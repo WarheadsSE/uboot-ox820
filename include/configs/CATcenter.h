@@ -1,7 +1,7 @@
 /*
  * ueberarbeitet durch Christoph Seyfert
  *
- * (C) Copyright 2004 DENX Software Engineering,
+ * (C) Copyright 2004-2005 DENX Software Engineering,
  *     Wolfgang Grandegger <wg@denx.de>
  * (C) Copyright 2003
  *     DAVE Srl
@@ -110,21 +110,26 @@
 
 #define CONFIG_MII		1	/* MII PHY management		*/
 #ifndef	 CONFIG_EXT_PHY
-#define CONFIG_PHY_ADDR		0	/* EMAC0 PHY address		*/
-#define CONFIG_PHY1_ADDR	1	/* EMAC1 PHY address		*/
+#define CONFIG_PHY_ADDR		1	/* EMAC0 PHY address		*/
+#define CONFIG_PHY1_ADDR	16	/* EMAC1 PHY address		*/
 #else
 #define CONFIG_PHY_ADDR		2	/* PHY address			*/
 #endif
 #define CONFIG_PHY_CLK_FREQ	EMAC_STACR_CLK_66MHZ
 
+#define	CONFIG_TIMESTAMP		/* Print image info with timestamp */
+
 #define CONFIG_COMMANDS	      ( CONFIG_CMD_DFL	| \
+				CFG_CMD_DHCP	| \
 				CFG_CMD_ELF	| \
 				CFG_CMD_EEPROM	| \
 				CFG_CMD_I2C	| \
 				CFG_CMD_IRQ	| \
 				CFG_CMD_JFFS2	| \
 				CFG_CMD_MII	| \
-				CFG_CMD_NAND	)
+				CFG_CMD_NAND	| \
+				CFG_CMD_NFS	| \
+				CFG_CMD_SNTP	)
 
 #define CONFIG_MAC_PARTITION
 #define CONFIG_DOS_PARTITION
@@ -372,11 +377,6 @@
 
 #define CFG_FLASH_EMPTY_INFO		/* print 'E' for empty sector on flinfo */
 
-#if 0 /* test-only */
-#define CFG_JFFS2_FIRST_BANK	0	/* use for JFFS2			*/
-#define CFG_JFFS2_NUM_BANKS	1	/* ! second bank contains U-Boot	*/
-#endif
-
 /*-----------------------------------------------------------------------
  * Environment Variable setup
  */
@@ -409,7 +409,7 @@
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CFG_DCACHE_SIZE		16384	/* For IBM 405 CPUs, older 405 ppc's	*/
+#define CFG_DCACHE_SIZE		16384	/* For AMCC 405 CPUs, older 405 ppc's	*/
 					/* have only 8kB, 16kB is save here	*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
 #if (CONFIG_COMMANDS & CFG_CMD_KGDB)
@@ -762,9 +762,26 @@
 #endif /* CONFIG_NO_SERIAL_EEPROM */
 
 #define CONFIG_JFFS2_NAND 1			/* jffs2 on nand support */
-#define CONFIG_JFFS2_NAND_DEV 0			/* nand device jffs2 lives on */
-#define CONFIG_JFFS2_NAND_OFF 0			/* start of jffs2 partition */
-#define CONFIG_JFFS2_NAND_SIZE 2*1024*1024	/* size of jffs2 partition */
 #define NAND_CACHE_PAGES 16			/* size of nand cache in 512 bytes pages */
+
+/*
+ * JFFS2 partitions
+ *
+ */
+/* No command line, one static partition */
+#undef CONFIG_JFFS2_CMDLINE
+#define CONFIG_JFFS2_DEV		"nand"
+#define CONFIG_JFFS2_PART_SIZE		0x00200000
+#define CONFIG_JFFS2_PART_OFFSET	0x00000000
+
+/* mtdparts command line support
+ *
+ * Note: fake mtd_id used, no linux mtd map file
+ */
+/*
+#define CONFIG_JFFS2_CMDLINE
+#define MTDIDS_DEFAULT		"nand0=catcenter"
+#define MTDPARTS_DEFAULT	"mtdparts=catcenter:2m(nand)"
+*/
 
 #endif	/* __CONFIG_H */
